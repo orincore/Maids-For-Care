@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Maids For Care - Professional Home Services",
   description: "Book professional maid services for your home",
+  icons: {
+    icon: "/logo/MFC_logo-bg.png",
+  },
 };
 
 export default function RootLayout({

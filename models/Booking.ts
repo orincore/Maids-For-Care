@@ -68,6 +68,18 @@ const BookingSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  maidsAssignmentHistory: [{
+    serviceProvider: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ServiceProvider',
+    },
+    providerName: String,
+    assignedAt: { type: Date, default: Date.now },
+    removedAt: Date,
+    reason: String,
+    comment: String,
+    assignedBy: String,
+  }],
 }, {
   timestamps: true,
 });

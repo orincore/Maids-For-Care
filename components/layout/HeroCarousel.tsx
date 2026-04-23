@@ -20,7 +20,7 @@ const slides: CarouselSlide[] = [
     title: "Professional Home Cleaning",
     subtitle: "Trusted & Verified Maids",
     description: "Book experienced, background-verified cleaning professionals for your home. Quality service guaranteed.",
-    image: "/api/placeholder/800/400",
+    image: "/images/pexels-liliana-drew-9462319.jpg",
     cta: "Book Cleaning Service",
     ctaLink: "/services"
   },
@@ -29,7 +29,7 @@ const slides: CarouselSlide[] = [
     title: "Cooking & Meal Prep",
     subtitle: "Delicious Home-Cooked Meals",
     description: "Professional cooks who prepare fresh, healthy meals according to your preferences and dietary needs.",
-    image: "/api/placeholder/800/400",
+    image: "/images/pexels-mavihnt-36874496.jpg",
     cta: "Find a Cook",
     ctaLink: "/services"
   },
@@ -38,7 +38,7 @@ const slides: CarouselSlide[] = [
     title: "Child & Elder Care",
     subtitle: "Compassionate Care Services",
     description: "Experienced caregivers for your loved ones. Reliable, caring, and professional support when you need it.",
-    image: "/api/placeholder/800/400",
+    image: "/images/pexels-zahid-hussain-349383850-14251977.jpg",
     cta: "Book Care Service",
     ctaLink: "/services"
   },
@@ -47,7 +47,7 @@ const slides: CarouselSlide[] = [
     title: "Become a Service Provider",
     subtitle: "Join Our Network",
     description: "Start your own business with Maids For Care. Connect with customers and grow your service business.",
-    image: "/api/placeholder/800/400",
+    image: "/images/pexels-antonius-ferret-6223026.jpg",
     cta: "Join as Provider",
     ctaLink: "/service-provider/register"
   }
@@ -91,11 +91,16 @@ export function HeroCarousel() {
               index < currentSlide ? '-translate-x-full' : 'translate-x-full'
             }`}
           >
-            {/* Background with gradient overlay */}
-            <div 
+            {/* Background image */}
+            <div
               className="absolute inset-0 bg-cover bg-center"
-              style={{ 
-                background: `linear-gradient(135deg, ${colors.primary[800]} 0%, ${colors.primary[950]} 100%)`,
+              style={{ backgroundImage: `url(${slide.image})` }}
+            />
+            {/* Dark gradient overlay */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(135deg, ${colors.primary[950]}cc 0%, ${colors.primary[800]}99 100%)`,
               }}
             />
             

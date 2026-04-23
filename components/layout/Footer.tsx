@@ -39,21 +39,16 @@ export function Footer() {
   ];
 
   const quickLinks = [
-    { label: 'About Us', href: '/about' },
-    { label: 'How It Works', href: '/how-it-works' },
-    { label: 'Pricing', href: '/pricing' },
-    { label: 'Safety', href: '/safety' },
-    { label: 'Careers', href: '/careers' },
-    { label: 'Blog', href: '/blog' }
+    { label: 'Home', href: '/' },
+    { label: 'Services', href: '/services' },
+    { label: 'Become a Provider', href: '/service-provider/register' },
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'My Profile', href: '/profile' },
   ];
 
   const supportLinks = [
-    { label: 'Help Center', href: '/help' },
-    { label: 'Contact Us', href: '/contact' },
-    { label: 'Terms of Service', href: '/terms' },
-    { label: 'Privacy Policy', href: '/privacy' },
-    { label: 'Refund Policy', href: '/refund' },
-    { label: 'FAQ', href: '/faq' }
+    { label: 'Sign In', href: '/auth/login' },
+    { label: 'Register', href: '/auth/register' },
   ];
 
   const features = [
@@ -251,33 +246,6 @@ export function Footer() {
             </div>
             
             <div className="flex items-center space-x-6 text-sm">
-              <button
-                onClick={() => router.push('/terms')}
-                className="transition-colors"
-                style={{ color: colors.primary[400] }}
-                onMouseEnter={(e) => e.currentTarget.style.color = colors.text.inverse}
-                onMouseLeave={(e) => e.currentTarget.style.color = colors.primary[400]}
-              >
-                Terms
-              </button>
-              <button
-                onClick={() => router.push('/privacy')}
-                className="transition-colors"
-                style={{ color: colors.primary[400] }}
-                onMouseEnter={(e) => e.currentTarget.style.color = colors.text.inverse}
-                onMouseLeave={(e) => e.currentTarget.style.color = colors.primary[400]}
-              >
-                Privacy
-              </button>
-              <button
-                onClick={() => router.push('/cookies')}
-                className="transition-colors"
-                style={{ color: colors.primary[400] }}
-                onMouseEnter={(e) => e.currentTarget.style.color = colors.text.inverse}
-                onMouseLeave={(e) => e.currentTarget.style.color = colors.primary[400]}
-              >
-                Cookies
-              </button>
               <button
                 onClick={() => router.push('/auth/admin')}
                 className="transition-colors text-xs opacity-50"

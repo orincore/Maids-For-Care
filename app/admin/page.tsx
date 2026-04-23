@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Calendar, DollarSign, Star, Plus, Edit, Trash2, MessageSquare, UserCheck, Settings } from 'lucide-react';
+import { Users, Calendar, DollarSign, Star, Plus, Edit, Trash2, MessageSquare, UserCheck, Settings, Eye } from 'lucide-react';
 
 interface Service {
   _id: string;
@@ -480,6 +480,9 @@ export default function AdminDashboard() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Joined
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -503,6 +506,15 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(user.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => router.push(`/admin/users/${user._id}`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-md hover:bg-gray-700 transition-colors"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          View Details
+                        </button>
                       </td>
                     </tr>
                   ))}

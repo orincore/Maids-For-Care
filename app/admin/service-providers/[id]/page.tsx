@@ -27,6 +27,8 @@ import {
   ShieldOff,
   ToggleLeft,
   ToggleRight,
+  Plus,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -108,6 +110,17 @@ export default function ServiceProviderDetailPage() {
   const [discountedPriceInput, setDiscountedPriceInput] = useState(0);
   const [savingPricing, setSavingPricing] = useState(false);
   const [assigningServices, setAssigningServices] = useState(false);
+  const [isCreateServiceModalOpen, setIsCreateServiceModalOpen] = useState(false);
+  const [creatingService, setCreatingService] = useState(false);
+  const [newService, setNewService] = useState({
+    name: '',
+    description: '',
+    price: '',
+    discountedPrice: '',
+    duration: '1',
+    category: 'cleaning',
+    isActive: true,
+  });
   const router = useRouter();
   const params = useParams();
   const providerId = params.id as string;
@@ -311,6 +324,49 @@ export default function ServiceProviderDetailPage() {
 
   const isServiceAssigned = (serviceId: string) =>
     provider?.services.some(s => s._id === serviceId) ?? false;
+
+  const handleCreateService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreatingService(true);
+    const adminToken = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
+        body: JSON.stringify({
+          ...newService,
+          price: parseInt(newService.price) || 0,
+          discountedPrice: newService.discountedPrice ? parseInt(newService.discountedPrice) : null,
+          duration: parseInt(newService.duration) || 1,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIsCreateServiceModalOpen(false);
+        setNewService({
+          name: '',
+          description: '',
+          price: '',
+          discountedPrice: '',
+          duration: '1',
+          category: 'cleaning',
+          isActive: true,
+        });
+        await fetchAllServices();
+        // Auto-assign the new service to this provider
+        if (data.service?._id) {
+          await toggleServiceAssignment(data.service._id);
+        }
+        alert('Service created and assigned successfully');
+      } else {
+        alert('Failed to create service');
+      }
+    } catch (e) {
+      alert('Error creating service');
+    } finally {
+      setCreatingService(false);
+    }
+  };
 
   const toggleServiceAssignment = async (serviceId: string) => {
     if (!provider) return;
@@ -559,19 +615,21 @@ export default function ServiceProviderDetailPage() {
               </div>
               {/* Name + meta */}
               <div className="flex-1 min-w-0 pt-2 sm:pt-0 sm:pb-1">
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <h2 className="text-2xl font-bold text-gray-900">{provider.name}</h2>
-                  <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${provider.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {provider.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                  <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${provider.isVerified ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                    {provider.isVerified ? '✓ Verified' : 'Unverified'}
-                  </span>
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{provider.name}</h2>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full ${provider.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {provider.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                    <span className={`inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full ${provider.isVerified ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                      {provider.isVerified ? '✓ Verified' : 'Unverified'}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 text-yellow-500 mb-3">
-                  <Star className="w-4 h-4 fill-current" />
-                  <span className="text-sm font-semibold text-gray-700">{provider.rating.toFixed(1)}</span>
-                  <span className="text-sm text-gray-400">({provider.totalReviews} reviews)</span>
+                <div className="flex items-center gap-1.5 mb-3">
+                  <Star className="w-4 h-4 fill-current text-yellow-500" />
+                  <span className="text-sm font-semibold text-gray-900">{provider.rating.toFixed(1)}</span>
+                  <span className="text-sm text-gray-500">({provider.totalReviews} reviews)</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-600">
                   <div className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-gray-400" /><span className="truncate">{provider.email}</span></div>
@@ -599,11 +657,11 @@ export default function ServiceProviderDetailPage() {
                 </div>
               </div>
               <div className="px-6 py-5">
-                {allServices.length === 0 ? (
-                  <p className="text-sm text-gray-400 italic">No services found. Create services in the admin panel first.</p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {allServices.map(svc => {
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {allServices.length === 0 ? (
+                    <p className="text-sm text-gray-400 italic">No services found.</p>
+                  ) : (
+                    allServices.map(svc => {
                       const assigned = isServiceAssigned(svc._id);
                       return (
                         <button
@@ -620,12 +678,21 @@ export default function ServiceProviderDetailPage() {
                           {svc.name}
                         </button>
                       );
-                    })}
-                  </div>
-                )}
-                {provider.services.length > 0 && (
-                  <p className="text-xs text-gray-400 mt-4">{provider.services.length} service{provider.services.length !== 1 ? 's' : ''} assigned</p>
-                )}
+                    })
+                  )}
+                </div>
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                  {provider.services.length > 0 && (
+                    <p className="text-xs text-gray-500">{provider.services.length} service{provider.services.length !== 1 ? 's' : ''} assigned</p>
+                  )}
+                  <button
+                    onClick={() => setIsCreateServiceModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-violet-700 bg-violet-50 border border-violet-200 rounded-lg hover:bg-violet-100 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create New Service
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1006,6 +1073,119 @@ export default function ServiceProviderDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Create Service Modal */}
+      <Modal isOpen={isCreateServiceModalOpen} onClose={() => setIsCreateServiceModalOpen(false)} title="Create New Service" size="md">
+        <form onSubmit={handleCreateService} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Service Name <span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              required
+              value={newService.name}
+              onChange={e => setNewService(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+              placeholder="e.g., Deep Cleaning"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-red-500">*</span></label>
+            <textarea
+              required
+              value={newService.description}
+              onChange={e => setNewService(prev => ({ ...prev, description: e.target.value }))}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none"
+              placeholder="Describe the service..."
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹) <span className="text-red-500">*</span></label>
+              <input
+                type="number"
+                required
+                min="0"
+                value={newService.price}
+                onChange={e => setNewService(prev => ({ ...prev, price: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+                placeholder="500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Discounted Price (₹)</label>
+              <input
+                type="number"
+                min="0"
+                value={newService.discountedPrice}
+                onChange={e => setNewService(prev => ({ ...prev, discountedPrice: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+                placeholder="Optional"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Duration (hours) <span className="text-red-500">*</span></label>
+              <select
+                value={newService.duration}
+                onChange={e => setNewService(prev => ({ ...prev, duration: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+              >
+                <option value="1">1 hour</option>
+                <option value="2">2 hours</option>
+                <option value="3">3 hours</option>
+                <option value="4">4 hours</option>
+                <option value="5">5 hours</option>
+                <option value="6">6 hours</option>
+                <option value="8">8 hours</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
+              <select
+                value={newService.category}
+                onChange={e => setNewService(prev => ({ ...prev, category: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+              >
+                <option value="cleaning">Cleaning</option>
+                <option value="cooking">Cooking</option>
+                <option value="laundry">Laundry</option>
+                <option value="childcare">Childcare</option>
+                <option value="eldercare">Eldercare</option>
+                <option value="general">General</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isActive"
+              checked={newService.isActive}
+              onChange={e => setNewService(prev => ({ ...prev, isActive: e.target.checked }))}
+              className="w-4 h-4 accent-violet-600"
+            />
+            <label htmlFor="isActive" className="text-sm text-gray-700">Active</label>
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setIsCreateServiceModalOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={creatingService || !newService.name || !newService.description || !newService.price}
+              className="px-4 py-2 text-sm font-medium text-white bg-violet-600 rounded-lg hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {creatingService && <Loader2 className="w-4 h-4 animate-spin" />}
+              {creatingService ? 'Creating...' : 'Create & Assign'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Document Preview Modal */}
       <Modal isOpen={!!previewDoc} onClose={() => setPreviewDoc(null)} title={previewDoc?.name || 'Document Preview'} size="xl">
