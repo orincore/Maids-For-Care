@@ -8,10 +8,11 @@ import { sendBookingReassignedEmail } from '@/lib/emailService';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
+    const { id } = await params;
 
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     if (!token) {
@@ -29,7 +30,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'newProviderId and reason are required' }, { status: 400 });
     }
 
-    const booking = await Booking.findById(params.id).populate('serviceProvider', 'name');
+    const booking = await Booking.findById(id).populate('serviceProvider', 'name');
     if (!booking) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
@@ -80,7 +81,7 @@ export async function PATCH(
 
     await booking.save();
 
-    const updated = await Booking.findById(params.id)
+    const updated = await Booking.findById(id)
       .populate('user', 'name email')
       .populate('service', 'name')
       .populate('services', 'name')
@@ -97,7 +98,7 @@ export async function PATCH(
         sendBookingReassignedEmail({
           userName: userDoc.name,
           userEmail: userDoc.email,
-          bookingId: params.id,
+          bookingId: id,
           serviceName,
           scheduledDate: new Date(u.scheduledDate).toLocaleDateString('en-IN'),
           scheduledTime: u.scheduledTime,

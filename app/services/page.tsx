@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Search, MapPin, Star, Clock, X } from 'lucide-react';
 import { colors } from '@/lib/colors';
@@ -31,7 +31,7 @@ const CATEGORIES = [
   { value: 'general', label: 'General' },
 ];
 
-export default function ServicesPage() {
+function ServicesPage() {
   const [allProviders, setAllProviders] = useState<ServiceProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -303,5 +303,17 @@ export default function ServicesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ServicesPageWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-gray-900" />
+      </div>
+    }>
+      <ServicesPage />
+    </Suspense>
   );
 }

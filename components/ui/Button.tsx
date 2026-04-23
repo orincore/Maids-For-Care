@@ -16,12 +16,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(
           'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background',
           {
-            [`text-white hover:opacity-90`]: variant === 'default',
-            [`text-white hover:opacity-90`]: variant === 'destructive',
-            [`border hover:opacity-90`]: variant === 'outline',
-            [`hover:opacity-90`]: variant === 'secondary',
-            [`hover:opacity-90`]: variant === 'ghost',
-            [`underline-offset-4 hover:underline`]: variant === 'link',
+            'text-white hover:opacity-90': variant === 'default' || variant === 'destructive',
+            'border hover:opacity-90': variant === 'outline',
+            'hover:opacity-90': variant === 'secondary' || variant === 'ghost',
+            'underline-offset-4 hover:underline': variant === 'link',
           },
           {
             'h-10 py-2 px-4': size === 'default',

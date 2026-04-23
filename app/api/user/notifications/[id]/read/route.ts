@@ -4,11 +4,12 @@ import Notification from '@/models/Notification';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
-    
+    const { id } = await params;
+
     // Get user ID from header (set by NextAuth session)
     const userId = request.headers.get('user-id');
     if (!userId) {
@@ -20,7 +21,7 @@ export async function PATCH(
 
     const notification = await Notification.findOneAndUpdate(
       {
-        _id: params.id,
+        _id: id,
         recipient: userId,
         recipientType: 'User',
       },

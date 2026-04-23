@@ -6,16 +6,17 @@ import { sendServiceStartedEmail, sendServiceCompletedEmail } from '@/lib/emailS
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
-    
+    const { id } = await params;
+
     // This endpoint can be used by both service providers and admins
     // For now, we'll implement basic status updates
     const { status, workNotes, beforeImages, afterImages } = await request.json();
 
-    const booking = await Booking.findById(params.id)
+    const booking = await Booking.findById(id)
       .populate('user service serviceProvider');
 
     if (!booking) {
@@ -50,7 +51,7 @@ export async function PATCH(
     }
 
     const updatedBooking = await Booking.findByIdAndUpdate(
-      params.id,
+      id,
       updateData,
       { new: true }
     ).populate('user service serviceProvider');
@@ -77,7 +78,7 @@ export async function PATCH(
         const base = {
           userName: user.name,
           userEmail: user.email,
-          bookingId: params.id,
+          bookingId: id,
           serviceName,
           scheduledDate: new Date(b.scheduledDate).toLocaleDateString('en-IN'),
           scheduledTime: b.scheduledTime,

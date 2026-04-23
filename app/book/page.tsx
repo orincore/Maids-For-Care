@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
@@ -53,7 +53,7 @@ declare global {
   }
 }
 
-export default function BookProviderPage() {
+function BookProviderPage() {
   const [provider, setProvider] = useState<ServiceProvider | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -593,5 +593,20 @@ export default function BookProviderPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function BookPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-gray-900" />
+          <p className="text-sm text-gray-600 font-medium">Loading...</p>
+        </div>
+      </div>
+    }>
+      <BookProviderPage />
+    </Suspense>
   );
 }

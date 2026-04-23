@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
     const review = await Review.create({
       booking: bookingId,
       user: userId,
-      serviceProvider: booking.serviceProvider._id,
-      service: booking.service._id,
+      serviceProvider: (booking.serviceProvider as any)?._id ?? booking.serviceProvider,
+      service: (booking.service as any)?._id ?? booking.service,
       rating,
       comment,
       aspects,
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Update service provider rating
-    await updateServiceProviderRating(booking.serviceProvider._id);
+    await updateServiceProviderRating((booking.serviceProvider as any)?._id ?? booking.serviceProvider);
 
     const populatedReview = await Review.findById(review._id)
       .populate('user', 'name profileImage')

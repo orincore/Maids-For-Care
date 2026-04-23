@@ -4,11 +4,12 @@ import Booking from '@/models/Booking';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
-    
+    const { id } = await params;
+
     // Get user ID from header (set by NextAuth session)
     const userId = request.headers.get('user-id');
     if (!userId) {
@@ -22,7 +23,7 @@ export async function PATCH(
 
     // Find booking and verify ownership
     const booking = await Booking.findOne({
-      _id: params.id,
+      _id: id,
       user: userId,
     });
 
@@ -66,7 +67,7 @@ export async function PATCH(
 
     // Update booking
     const updatedBooking = await Booking.findByIdAndUpdate(
-      params.id,
+      id,
       {
         scheduledDate: new Date(scheduledDate),
         scheduledTime,

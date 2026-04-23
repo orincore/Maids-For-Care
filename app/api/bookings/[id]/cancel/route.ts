@@ -6,11 +6,12 @@ import { sendBookingCancelledEmail } from '@/lib/emailService';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
-    
+    const { id } = await params;
+
     // Get user ID from header (set by NextAuth session)
     const userId = request.headers.get('user-id');
     if (!userId) {
@@ -24,7 +25,7 @@ export async function PATCH(
 
     // Find booking and verify ownership
     const booking = await Booking.findOne({
-      _id: params.id,
+      _id: id,
       user: userId,
     });
 
@@ -58,7 +59,7 @@ export async function PATCH(
 
     // Update booking status
     const updatedBooking = await Booking.findByIdAndUpdate(
-      params.id,
+      id,
       {
         status: 'cancelled',
         cancelledAt: new Date(),
@@ -78,7 +79,7 @@ export async function PATCH(
         sendBookingCancelledEmail({
           userName: user.name,
           userEmail: user.email,
-          bookingId: params.id,
+          bookingId: id,
           serviceName,
           scheduledDate: new Date(booking.scheduledDate).toLocaleDateString('en-IN'),
           scheduledTime: booking.scheduledTime,

@@ -5,10 +5,11 @@ import { verifyAdminToken } from '@/lib/adminAuth';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
+    const { id } = await params;
     
     // Verify admin token for admin response
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
@@ -30,7 +31,7 @@ export async function PATCH(
     const { adminResponse } = await request.json();
 
     const review = await Review.findByIdAndUpdate(
-      params.id,
+      id,
       {
         adminResponse: {
           message: adminResponse,
@@ -65,10 +66,11 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
+    const { id } = await params;
     
     // Verify admin token
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
@@ -87,7 +89,7 @@ export async function DELETE(
       );
     }
 
-    const review = await Review.findByIdAndDelete(params.id);
+    const review = await Review.findByIdAndDelete(id);
 
     if (!review) {
       return NextResponse.json(

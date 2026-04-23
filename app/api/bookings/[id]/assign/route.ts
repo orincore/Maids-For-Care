@@ -7,11 +7,12 @@ import { verifyAdminToken } from '@/lib/adminAuth';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
-    
+    const { id } = await params;
+
     // Verify admin token
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     if (!token) {
@@ -31,7 +32,7 @@ export async function POST(
 
     const { serviceProviderId, autoAssign } = await request.json();
 
-    const booking = await Booking.findById(params.id)
+    const booking = await Booking.findById(id)
       .populate('service user');
 
     if (!booking) {
@@ -46,7 +47,7 @@ export async function POST(
     if (autoAssign) {
       // Auto-assign logic: find best available service provider
       assignedServiceProvider = await findBestServiceProvider(
-        booking.service._id,
+        (booking.service as any)._id,
         booking.scheduledDate,
         booking.scheduledTime,
         booking.address
@@ -70,7 +71,7 @@ export async function POST(
       }
 
       // Check if service provider offers this service
-      if (!assignedServiceProvider.services.includes(booking.service._id)) {
+      if (!assignedServiceProvider.services.includes((booking.service as any)._id)) {
         return NextResponse.json(
           { error: 'Service provider does not offer this service' },
           { status: 400 }
@@ -80,7 +81,7 @@ export async function POST(
 
     // Update booking
     const updatedBooking = await Booking.findByIdAndUpdate(
-      params.id,
+      id,
       {
         serviceProvider: assignedServiceProvider._id,
         status: 'assigned',
@@ -94,7 +95,7 @@ export async function POST(
       recipient: booking.user._id,
       recipientType: 'User',
       title: 'Service Provider Assigned',
-      message: `${assignedServiceProvider.name} has been assigned to your ${booking.service.name} booking.`,
+      message: `${assignedServiceProvider.name} has been assigned to your ${(booking.service as any).name} booking.`,
       type: 'booking_assigned',
       relatedId: booking._id,
     });

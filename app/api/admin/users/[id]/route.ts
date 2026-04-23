@@ -8,10 +8,11 @@ import { verifyAdminToken } from '@/lib/adminAuth';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
+    const { id } = await params;
 
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     if (!token) {
@@ -23,12 +24,12 @@ export async function GET(
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const user = await User.findById(params.id, '-password');
+    const user = await User.findById(id, '-password');
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const bookings = await Booking.find({ user: params.id })
+    const bookings = await Booking.find({ user: id })
       .populate('service', 'name category')
       .populate('services', 'name category')
       .populate('serviceProvider', 'name phone email profileImage isVerified rating')
