@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Booking from '@/models/Booking';
 import Notification from '@/models/Notification';
+import { sendServiceStartedEmail, sendServiceCompletedEmail } from '@/lib/emailService';
 
 export async function PATCH(
   request: NextRequest,
@@ -31,7 +32,7 @@ export async function PATCH(
       case 'in-progress':
         updateData.startedAt = new Date();
         if (beforeImages) updateData.beforeImages = beforeImages;
-        notificationMessage = `Your ${booking.service.name} service has started.`;
+        notificationMessage = `Your ${(booking.service as any).name} service has started.`;
         break;
       
       case 'completed':
@@ -39,12 +40,12 @@ export async function PATCH(
         updateData.actualCompletionTime = new Date();
         if (afterImages) updateData.afterImages = afterImages;
         if (workNotes) updateData.workNotes = workNotes;
-        notificationMessage = `Your ${booking.service.name} service has been completed.`;
+        notificationMessage = `Your ${(booking.service as any).name} service has been completed.`;
         break;
       
       case 'cancelled':
         updateData.cancelledAt = new Date();
-        notificationMessage = `Your ${booking.service.name} service has been cancelled.`;
+        notificationMessage = `Your ${(booking.service as any).name} service has been cancelled.`;
         break;
     }
 
@@ -64,6 +65,31 @@ export async function PATCH(
         type: 'booking_status',
         relatedId: booking._id,
       });
+    }
+
+    // Fire email events (non-blocking)
+    try {
+      const b = updatedBooking as any;
+      const user = b?.user;
+      const serviceName = b?.service?.name || 'Service';
+      const provider = b?.serviceProvider;
+      if (user?.email) {
+        const base = {
+          userName: user.name,
+          userEmail: user.email,
+          bookingId: params.id,
+          serviceName,
+          scheduledDate: new Date(b.scheduledDate).toLocaleDateString('en-IN'),
+          scheduledTime: b.scheduledTime,
+          totalAmount: b.totalAmount,
+          providerName: provider?.name,
+          providerPhone: provider?.phone,
+        };
+        if (status === 'in-progress') sendServiceStartedEmail(base);
+        if (status === 'completed') sendServiceCompletedEmail(base);
+      }
+    } catch (emailErr) {
+      console.error('[Email] status event emit error:', emailErr);
     }
 
     return NextResponse.json({

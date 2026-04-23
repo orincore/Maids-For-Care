@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Booking from '@/models/Booking';
+import User from '@/models/User';
+import { sendBookingCancelledEmail } from '@/lib/emailService';
 
 export async function PATCH(
   request: NextRequest,
@@ -67,9 +69,26 @@ export async function PATCH(
       { new: true }
     ).populate('service');
 
-    // TODO: Process refund if payment was made
-    // TODO: Send notification to service provider
-    // TODO: Send confirmation email to user
+    // Fire email event (non-blocking)
+    try {
+      const user = await User.findById(userId, 'name email');
+      const b = updatedBooking as any;
+      const serviceName = b?.service?.name || 'Service';
+      if (user) {
+        sendBookingCancelledEmail({
+          userName: user.name,
+          userEmail: user.email,
+          bookingId: params.id,
+          serviceName,
+          scheduledDate: new Date(booking.scheduledDate).toLocaleDateString('en-IN'),
+          scheduledTime: booking.scheduledTime,
+          totalAmount: booking.totalAmount,
+          cancellationReason: reason,
+        });
+      }
+    } catch (emailErr) {
+      console.error('[Email] booking.cancelled error:', emailErr);
+    }
 
     return NextResponse.json({
       message: 'Booking cancelled successfully',

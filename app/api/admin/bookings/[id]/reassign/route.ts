@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Booking from '@/models/Booking';
 import ServiceProvider from '@/models/ServiceProvider';
+import User from '@/models/User';
 import { verifyAdminToken } from '@/lib/adminAuth';
+import { sendBookingReassignedEmail } from '@/lib/emailService';
 
 export async function PATCH(
   request: NextRequest,
@@ -79,8 +81,37 @@ export async function PATCH(
     await booking.save();
 
     const updated = await Booking.findById(params.id)
+      .populate('user', 'name email')
+      .populate('service', 'name')
+      .populate('services', 'name')
       .populate('serviceProvider', 'name phone email profileImage isVerified rating')
       .populate('maidsAssignmentHistory.serviceProvider', 'name phone email profileImage isVerified');
+
+    // Fire email event (non-blocking)
+    try {
+      const u = updated as any;
+      const userDoc = u?.user;
+      const serviceName = u?.service?.name ||
+        (u?.services?.length ? u.services.map((s: any) => s.name).join(', ') : 'Service');
+      if (userDoc?.email) {
+        sendBookingReassignedEmail({
+          userName: userDoc.name,
+          userEmail: userDoc.email,
+          bookingId: params.id,
+          serviceName,
+          scheduledDate: new Date(u.scheduledDate).toLocaleDateString('en-IN'),
+          scheduledTime: u.scheduledTime,
+          totalAmount: u.totalAmount,
+          oldProviderName: booking.serviceProvider ? (booking.serviceProvider as any).name : undefined,
+          newProviderName: newProvider.name,
+          newProviderPhone: newProvider.phone,
+          reassignReason: reason,
+          reassignComment: comment,
+        });
+      }
+    } catch (emailErr) {
+      console.error('[Email] booking.reassigned error:', emailErr);
+    }
 
     return NextResponse.json({ message: 'Maid reassigned successfully', booking: updated });
   } catch (error) {

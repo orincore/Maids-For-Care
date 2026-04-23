@@ -291,9 +291,15 @@ export default function BookProviderPage() {
             <p className="text-gray-500 text-sm mb-1">
               Your booking with <span className="font-semibold text-gray-900">{provider?.name}</span> is confirmed.
             </p>
-            <p className="text-gray-400 text-xs mb-6">
-              You will receive a confirmation shortly. Redirecting to your dashboard…
+            <p className="text-gray-400 text-xs mb-3">
+              A confirmation email has been sent to your inbox. Redirecting to your dashboard…
             </p>
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mb-4 text-left">
+              <span className="text-amber-500 text-sm mt-0.5">⚠</span>
+              <p className="text-xs text-amber-800 leading-relaxed">
+                <span className="font-semibold">Can&apos;t find the email?</span> Check your <span className="font-semibold">Spam or Junk</span> folder and mark it as &quot;Not Spam&quot; so future emails reach your inbox.
+              </p>
+            </div>
             <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
               <div className="bg-green-500 h-1.5 rounded-full animate-[progress_4s_linear_forwards]" style={{ width: '100%', animation: 'shrink 4s linear forwards' }} />
             </div>

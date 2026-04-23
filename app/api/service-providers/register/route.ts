@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import ServiceProvider from '@/models/ServiceProvider';
+import { sendProviderRegisteredEmail } from '@/lib/emailService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -65,6 +66,16 @@ export async function POST(request: NextRequest) {
     
     const serviceProvider = await ServiceProvider.create(createData);
     console.log('Created provider documents:', serviceProvider.documents);
+
+    // Fire email event (non-blocking)
+    try {
+      sendProviderRegisteredEmail({
+        providerName: serviceProvider.name,
+        providerEmail: serviceProvider.email,
+      });
+    } catch (emailErr) {
+      console.error('[Email] provider.registered emit error:', emailErr);
+    }
 
     return NextResponse.json(
       { 

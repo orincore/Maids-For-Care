@@ -3,6 +3,8 @@ import crypto from 'crypto';
 import dbConnect from '@/lib/mongodb';
 import Booking from '@/models/Booking';
 import ServiceProvider from '@/models/ServiceProvider';
+import User from '@/models/User';
+import { sendPaymentConfirmedEmail } from '@/lib/emailService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,7 +44,7 @@ export async function POST(request: NextRequest) {
         status: 'confirmed',
       },
       { new: true }
-    ).populate('service').populate('services').populate('serviceProvider', 'name profileImage');
+    ).populate('service').populate('services').populate('serviceProvider', 'name phone email profileImage');
 
     // Mark the provider as inactive — hidden from listings, allocated to this booking
     if (booking?.serviceProvider) {
@@ -50,6 +52,35 @@ export async function POST(request: NextRequest) {
         (booking.serviceProvider as any)._id || booking.serviceProvider,
         { isActive: false }
       );
+    }
+
+    // Fire email (non-blocking)
+    try {
+      const user = await User.findById((booking as any).user?._id || (booking as any).user, 'name email');
+      const b = booking as any;
+      const serviceName = b?.service?.name ||
+        (b?.services?.length ? b.services.map((s: any) => s.name).join(', ') : 'Service');
+      const provider = b?.serviceProvider;
+      if (user) {
+        sendPaymentConfirmedEmail({
+          userName: user.name,
+          userEmail: user.email,
+          bookingId: bookingId,
+          serviceName,
+          scheduledDate: new Date(b.scheduledDate).toLocaleDateString('en-IN'),
+          scheduledTime: b.scheduledTime,
+          totalAmount: b.totalAmount,
+          paymentId: razorpay_payment_id,
+          address: b.address
+            ? [b.address.street, b.address.city, b.address.state].filter(Boolean).join(', ')
+            : '',
+          providerName: provider?.name,
+          providerPhone: provider?.phone,
+          providerEmail: provider?.email,
+        });
+      }
+    } catch (emailErr) {
+      console.error('[Email] payment.confirmed error:', emailErr);
     }
 
     return NextResponse.json({

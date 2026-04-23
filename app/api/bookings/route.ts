@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Booking from '@/models/Booking';
+import User from '@/models/User';
 import '@/models/ServiceProvider'; // Ensure model registered for populate
+import { sendBookingCreatedEmail } from '@/lib/emailService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,6 +47,31 @@ export async function POST(request: NextRequest) {
       .populate('service')
       .populate('services')
       .populate('user', '-password');
+
+    // Fire email event (non-blocking)
+    try {
+      const user = await User.findById(userId, 'name email');
+      const svc = (populatedBooking as any);
+      const serviceName = svc?.service?.name ||
+        (svc?.services?.length ? svc.services.map((s: any) => s.name).join(', ') : 'Service');
+      if (user) {
+        sendBookingCreatedEmail({
+          userName: user.name,
+          userEmail: user.email,
+          bookingId: booking._id.toString(),
+          serviceName,
+          scheduledDate: new Date(scheduledDate).toLocaleDateString('en-IN'),
+          scheduledTime,
+          totalAmount,
+          address: address
+            ? [address.street, address.city, address.state].filter(Boolean).join(', ')
+            : '',
+          specialInstructions,
+        });
+      }
+    } catch (emailErr) {
+      console.error('[Email] booking.created error:', emailErr);
+    }
 
     return NextResponse.json(
       { message: 'Booking created successfully', booking: populatedBooking },
