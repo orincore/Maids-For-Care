@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import Booking from '@/models/Booking';
 import ServiceProvider from '@/models/ServiceProvider';
 import User from '@/models/User';
+import Notification from '@/models/Notification';
 import { verifyAdminToken } from '@/lib/adminAuth';
 import { sendBookingReassignedEmail } from '@/lib/emailService';
 
@@ -42,6 +43,11 @@ export async function PATCH(
 
     const now = new Date();
 
+    // Capture the old provider name BEFORE overwriting booking.serviceProvider
+    const oldProviderName: string | undefined = booking.serviceProvider
+      ? (booking.serviceProvider as any).name
+      : undefined;
+
     // Close out the current assignment in history if there is one
     if (booking.serviceProvider) {
       const lastEntry = booking.maidsAssignmentHistory?.[booking.maidsAssignmentHistory.length - 1];
@@ -53,7 +59,7 @@ export async function PATCH(
         booking.maidsAssignmentHistory = booking.maidsAssignmentHistory || [];
         booking.maidsAssignmentHistory.push({
           serviceProvider: booking.serviceProvider,
-          providerName: (booking.serviceProvider as any).name || 'Unknown',
+          providerName: oldProviderName || 'Unknown',
           assignedAt: booking.assignedAt || booking.createdAt,
           removedAt: now,
           reason,
@@ -77,7 +83,12 @@ export async function PATCH(
 
     booking.serviceProvider = newProvider._id;
     booking.assignedAt = now;
-    booking.status = 'assigned';
+    booking.status = 'confirmed';
+    // Admin reassignments bypass payment — mark paid so the booking is never
+    // stuck waiting for a payment that isn't required in this flow.
+    if (booking.paymentStatus !== 'paid') {
+      booking.paymentStatus = 'paid';
+    }
 
     await booking.save();
 
@@ -88,12 +99,29 @@ export async function PATCH(
       .populate('serviceProvider', 'name phone email profileImage isVerified rating')
       .populate('maidsAssignmentHistory.serviceProvider', 'name phone email profileImage isVerified');
 
-    // Fire email event (non-blocking)
+    const u = updated as any;
+    const userDoc = u?.user;
+    const serviceName = u?.service?.name ||
+      (u?.services?.length ? u.services.map((s: any) => s.name).join(', ') : 'Service');
+
+    // In-app notification for customer
     try {
-      const u = updated as any;
-      const userDoc = u?.user;
-      const serviceName = u?.service?.name ||
-        (u?.services?.length ? u.services.map((s: any) => s.name).join(', ') : 'Service');
+      if (userDoc?._id) {
+        await Notification.create({
+          recipient: userDoc._id,
+          recipientType: 'User',
+          title: 'Your Maid Has Been Reassigned',
+          message: `${newProvider.name} has been assigned to your ${serviceName} booking.`,
+          type: 'booking_assigned',
+          relatedId: booking._id,
+        });
+      }
+    } catch (notifErr) {
+      console.error('[Notification] reassign notification error:', notifErr);
+    }
+
+    // Email notification for customer (non-blocking)
+    try {
       if (userDoc?.email) {
         sendBookingReassignedEmail({
           userName: userDoc.name,
@@ -103,7 +131,7 @@ export async function PATCH(
           scheduledDate: new Date(u.scheduledDate).toLocaleDateString('en-IN'),
           scheduledTime: u.scheduledTime,
           totalAmount: u.totalAmount,
-          oldProviderName: booking.serviceProvider ? (booking.serviceProvider as any).name : undefined,
+          oldProviderName,
           newProviderName: newProvider.name,
           newProviderPhone: newProvider.phone,
           reassignReason: reason,

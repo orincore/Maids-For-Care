@@ -113,7 +113,7 @@ export function Footer() {
             <div className="space-y-3">
               <div className="flex items-center space-x-3">
                 <Mail className="w-5 h-5" style={{ color: colors.primary[400] }} />
-                <span style={{ color: colors.primary[300] }}>support@Maids For Care.com</span>
+                <a href="mailto:info@maidsforcare.com" style={{ color: colors.primary[300] }}>info@maidsforcare.com</a>
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="w-5 h-5" style={{ color: colors.primary[400] }} />
@@ -242,7 +242,7 @@ export function Footer() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-sm" style={{ color: colors.primary[400] }}>
-              © 2026 Maids for care. All rights reserved.
+              © {currentYear} Maids For Care. All rights reserved.
             </div>
             
             <div className="flex items-center space-x-6 text-sm">

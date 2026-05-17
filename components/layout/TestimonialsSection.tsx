@@ -100,11 +100,11 @@ export function TestimonialsSection() {
   };
 
   return (
-    <section className="py-16" style={{ backgroundColor: colors.background.secondary }}>
+    <section className="py-10 md:py-16" style={{ backgroundColor: colors.background.secondary }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: colors.text.primary }}>
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="text-2xl md:text-4xl font-bold mb-4" style={{ color: colors.text.primary }}>
             What Our Customers Say
           </h2>
           <p className="text-lg max-w-2xl mx-auto" style={{ color: colors.text.secondary }}>
@@ -162,12 +162,12 @@ export function TestimonialsSection() {
             ))}
           </div>
 
-          {/* Navigation Arrows */}
+          {/* Navigation Arrows — hidden on mobile to prevent horizontal overflow */}
           {totalPages > 1 && (
             <>
               <button
                 onClick={prevTestimonials}
-                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 rounded-full items-center justify-center transition-colors"
                 style={{ backgroundColor: colors.primary[950] }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.primary[800]}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = colors.primary[950]}
@@ -177,7 +177,7 @@ export function TestimonialsSection() {
 
               <button
                 onClick={nextTestimonials}
-                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 rounded-full items-center justify-center transition-colors"
                 style={{ backgroundColor: colors.primary[950] }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.primary[800]}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = colors.primary[950]}
@@ -209,7 +209,7 @@ export function TestimonialsSection() {
         )}
 
         {/* Stats */}
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+        <div className="mt-10 md:mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 text-center">
           {[
             { number: "10,000+", label: "Happy Customers" },
             { number: "50,000+", label: "Services Completed" },
@@ -217,7 +217,7 @@ export function TestimonialsSection() {
             { number: "500+", label: "Verified Professionals" }
           ].map((stat, index) => (
             <div key={index}>
-              <div className="text-3xl font-bold mb-2" style={{ color: colors.primary[950] }}>
+              <div className="text-2xl md:text-3xl font-bold mb-2" style={{ color: colors.primary[950] }}>
                 {stat.number}
               </div>
               <div className="text-sm" style={{ color: colors.text.secondary }}>

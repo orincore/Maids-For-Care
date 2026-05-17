@@ -119,19 +119,19 @@ function ServicesPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: colors.background.secondary }}>
       {/* Header */}
-      <div className="bg-white border-b sticky top-16 z-30" style={{ borderColor: colors.border.light }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-3 mb-4">
-            <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-full">
+      <div className="bg-white border-b sticky top-18 z-30" style={{ borderColor: colors.border.light }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 md:py-4">
+          <div className="flex items-center gap-3 mb-3 md:mb-4">
+            <button onClick={() => router.back()} className="p-1.5 md:p-2 hover:bg-gray-100 rounded-full shrink-0">
               <ArrowLeft className="w-5 h-5" style={{ color: colors.text.primary }} />
             </button>
-            <div>
-              <h1 className="text-2xl font-bold" style={{ color: colors.text.primary }}>
+            <div className="min-w-0">
+              <h1 className="text-xl md:text-2xl font-bold truncate" style={{ color: colors.text.primary }}>
                 Find a Maid
               </h1>
               {userLocation && (
-                <p className="text-sm flex items-center gap-1 mt-0.5" style={{ color: colors.text.secondary }}>
-                  <MapPin className="w-3.5 h-3.5" />
+                <p className="text-xs md:text-sm flex items-center gap-1 mt-0.5 truncate" style={{ color: colors.text.secondary }}>
+                  <MapPin className="w-3 h-3 md:w-3.5 md:h-3.5 shrink-0" />
                   {userLocation}
                 </p>
               )}
@@ -147,7 +147,7 @@ function ServicesPage() {
                 placeholder="Search by name, service or area..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-9 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full pl-9 pr-9 py-2 md:py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
                 style={{
                   borderColor: colors.border.medium,
                   backgroundColor: colors.background.primary,
@@ -166,7 +166,7 @@ function ServicesPage() {
           </div>
 
           {/* Category pills */}
-          <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
+          <div className="flex gap-2 mt-2 md:mt-3 overflow-x-auto pb-1 scrollbar-hide">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.value}

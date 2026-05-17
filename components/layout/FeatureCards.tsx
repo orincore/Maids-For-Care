@@ -190,11 +190,11 @@ export function ServiceCards() {
 
 export function TrustSection() {
   return (
-    <section className="py-16 bg-white">
+    <section className="py-10 md:py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: colors.text.primary }}>
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="text-2xl md:text-4xl font-bold mb-4" style={{ color: colors.text.primary }}>
             Why Choose Maids For Care?
           </h2>
           <p className="text-lg max-w-2xl mx-auto" style={{ color: colors.text.secondary }}>
@@ -203,7 +203,7 @@ export function TrustSection() {
         </div>
 
         {/* Trust Cards */}
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-6 md:gap-8">
           {trustCards.map((card, index) => {
             const Icon = card.icon;
             return (

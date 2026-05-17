@@ -83,7 +83,7 @@ export interface ProviderEmailData {
 const brandColor = '#1a1a2e';
 const accentColor = '#7c3aed';
 const fromName = process.env.SMTP_FROM_NAME || 'Maids For Care';
-const fromEmail = process.env.SMTP_USER || 'noreply@maidsforcare.com';
+const fromEmail = process.env.SMTP_USER || 'info@maidsforcare.com';
 const siteUrl = process.env.NEXTAUTH_URL || 'https://maidsforcare.com';
 
 const emailLayout = (title: string, body: string) => `
@@ -263,35 +263,64 @@ Maids For Care`,
   }),
 
   booking_reassigned: (d: BookingEmailData) => ({
-    subject: `Maid Reassignment Notice – Booking #${d.bookingId.slice(-8).toUpperCase()}`,
+    subject: `Your Maid Has Been Updated – Booking #${d.bookingId.slice(-8).toUpperCase()}`,
     html: emailLayout('Maid Reassigned', `
-      <h2 style="margin:0 0 6px;font-size:24px;color:${brandColor};">Maid Reassignment</h2>
-      <p style="margin:0 0 24px;color:#555;font-size:15px;">Hi <strong>${d.userName}</strong>, we've updated the professional assigned to your booking.</p>
+      <h2 style="margin:0 0 6px;font-size:24px;color:${brandColor};">Your Maid Has Been Reassigned</h2>
+      <p style="margin:0 0 24px;color:#555;font-size:15px;">
+        Hi <strong>${d.userName}</strong>, we've assigned a new professional to your booking.
+        Your service is confirmed and will proceed as scheduled — no action is needed from your side.
+      </p>
+
       ${d.oldProviderName ? `
-      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:16px 20px;margin-bottom:16px;">
-        <p style="margin:0 0 4px;font-size:12px;color:#c2410c;font-weight:600;text-transform:uppercase;">Previous Maid</p>
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:16px 20px;margin-bottom:12px;">
+        <p style="margin:0 0 4px;font-size:11px;color:#c2410c;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Previous Maid</p>
         <p style="margin:0;font-size:15px;color:#1a1a2e;font-weight:600;">${d.oldProviderName}</p>
       </div>
       ` : ''}
-      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;margin-bottom:16px;">
-        <p style="margin:0 0 4px;font-size:12px;color:#15803d;font-weight:600;text-transform:uppercase;">New Maid</p>
-        <p style="margin:0 0 4px;font-size:15px;color:#1a1a2e;font-weight:600;">${d.newProviderName}</p>
-        ${d.newProviderPhone ? `<p style="margin:0;font-size:13px;color:#555;">📞 ${d.newProviderPhone}</p>` : ''}
+
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px 24px;margin-bottom:16px;">
+        <p style="margin:0 0 8px;font-size:11px;color:#15803d;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">New Maid Assigned</p>
+        <p style="margin:0 0 4px;font-size:18px;color:${brandColor};font-weight:700;">${d.newProviderName}</p>
+        ${d.newProviderPhone ? `<p style="margin:4px 0 0;font-size:14px;color:#555;">📞 ${d.newProviderPhone}</p>` : ''}
+        <p style="margin:8px 0 0;font-size:13px;color:#4ade80;font-weight:600;">✓ Verified Professional</p>
       </div>
-      ${d.reassignReason ? `
-      <div style="background:#f9f9fb;border:1px solid #e8e8ec;border-radius:8px;padding:16px 20px;margin-bottom:24px;">
-        <p style="margin:0 0 4px;font-size:12px;color:#888;font-weight:600;text-transform:uppercase;">Reason</p>
-        <p style="margin:0;font-size:14px;color:#555;">${d.reassignReason}${d.reassignComment ? ` — ${d.reassignComment}` : ''}</p>
-      </div>
-      ` : ''}
-      <div style="background:#f9f9fb;border:1px solid #e8e8ec;border-radius:8px;padding:16px 20px;margin-bottom:24px;">
+
+      <div style="background:#f9f9fb;border:1px solid #e8e8ec;border-radius:8px;padding:16px 20px;margin-bottom:16px;">
         <table width="100%" cellpadding="0" cellspacing="0">
+          ${infoRow('Booking ID', `#${d.bookingId.slice(-8).toUpperCase()}`)}
           ${infoRow('Service', d.serviceName)}
           ${infoRow('Scheduled', `${d.scheduledDate} at ${d.scheduledTime}`)}
         </table>
       </div>
-      ${ctaButton('View Booking', `${siteUrl}/dashboard`)}
+
+      ${d.reassignReason ? `
+      <div style="background:#f9f9fb;border:1px solid #e8e8ec;border-radius:8px;padding:14px 18px;margin-bottom:24px;">
+        <p style="margin:0 0 4px;font-size:11px;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Reason for Change</p>
+        <p style="margin:0;font-size:13px;color:#555;">${d.reassignReason}${d.reassignComment ? ` — ${d.reassignComment}` : ''}</p>
+      </div>
+      ` : '<div style="margin-bottom:24px;"></div>'}
+
+      <p style="color:#888;font-size:13px;margin:0 0 20px;">
+        If you have any questions or concerns, feel free to reach out to us at
+        <a href="mailto:info@maidsforcare.com" style="color:${accentColor};">info@maidsforcare.com</a>.
+      </p>
+      ${ctaButton('View My Booking', `${siteUrl}/dashboard`)}
     `),
+    text: `Your Maid Has Been Updated – Booking #${d.bookingId.slice(-8).toUpperCase()}
+
+Hi ${d.userName}, we've assigned a new professional to your booking. Your service is confirmed and will proceed as scheduled.
+
+${d.oldProviderName ? `Previous Maid: ${d.oldProviderName}\n` : ''}New Maid: ${d.newProviderName}${d.newProviderPhone ? `\nPhone: ${d.newProviderPhone}` : ''}
+
+Booking ID: #${d.bookingId.slice(-8).toUpperCase()}
+Service: ${d.serviceName}
+Scheduled: ${d.scheduledDate} at ${d.scheduledTime}
+
+${d.reassignReason ? `Reason: ${d.reassignReason}${d.reassignComment ? ` — ${d.reassignComment}` : ''}\n` : ''}
+Questions? Contact us at info@maidsforcare.com
+
+Best,
+Maids For Care`,
   }),
 
   service_started: (d: BookingEmailData) => ({
@@ -367,7 +396,7 @@ Maids For Care`,
           <li>You'll be able to start accepting bookings</li>
         </ol>
       </div>
-      <p style="color:#888;font-size:13px;margin:0;">If you have any questions, reply to this email or contact <a href="mailto:support@maidsforcare.com" style="color:${accentColor};">support@maidsforcare.com</a>.</p>
+      <p style="color:#888;font-size:13px;margin:0;">If you have any questions, reply to this email or contact <a href="mailto:info@maidsforcare.com" style="color:${accentColor};">info@maidsforcare.com</a>.</p>
     `),
   }),
 
@@ -466,7 +495,7 @@ export function sendBookingAssignedEmail(data: BookingEmailData & { providerEmai
 
 export function sendBookingReassignedEmail(data: BookingEmailData): void {
   const t = templates.booking_reassigned(data);
-  fire(data.userEmail, t.subject, t.html);
+  fire(data.userEmail, t.subject, t.html, (t as any).text);
 }
 
 export function sendServiceStartedEmail(data: BookingEmailData): void {

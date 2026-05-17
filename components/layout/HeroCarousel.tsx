@@ -80,7 +80,7 @@ export function HeroCarousel() {
   };
 
   return (
-    <div className="relative h-[600px] overflow-hidden">
+    <div className="relative h-[460px] sm:h-[520px] md:h-[600px] overflow-hidden">
       {/* Slides */}
       <div className="relative h-full">
         {slides.map((slide, index) => (
@@ -109,23 +109,23 @@ export function HeroCarousel() {
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                 <div className="grid lg:grid-cols-2 gap-12 items-center">
                   {/* Text Content */}
-                  <div className="text-white space-y-6">
-                    <div className="space-y-2">
-                      <p className="text-lg font-medium opacity-90">{slide.subtitle}</p>
-                      <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+                  <div className="text-white space-y-4 md:space-y-6">
+                    <div className="space-y-1 md:space-y-2">
+                      <p className="text-sm md:text-lg font-medium opacity-90">{slide.subtitle}</p>
+                      <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                         {slide.title}
                       </h1>
                     </div>
-                    
-                    <p className="text-xl opacity-90 max-w-lg">
+
+                    <p className="text-sm md:text-xl opacity-90 max-w-lg line-clamp-3 md:line-clamp-none">
                       {slide.description}
                     </p>
-                    
-                    <div className="flex flex-col sm:flex-row gap-4 pt-4">
+
+                    <div className="flex flex-col sm:flex-row gap-3 pt-2 md:pt-4">
                       <a
                         href={slide.ctaLink}
-                        className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-lg transition-colors"
-                        style={{ 
+                        className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 text-sm md:text-lg font-semibold rounded-lg transition-colors"
+                        style={{
                           backgroundColor: colors.text.inverse,
                           color: colors.primary[950],
                         }}
@@ -134,11 +134,11 @@ export function HeroCarousel() {
                       >
                         {slide.cta}
                       </a>
-                      
+
                       <a
                         href="/services"
-                        className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-lg border-2 transition-colors"
-                        style={{ 
+                        className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 text-sm md:text-lg font-semibold rounded-lg border-2 transition-colors"
+                        style={{
                           borderColor: colors.text.inverse,
                           color: colors.text.inverse,
                           backgroundColor: 'transparent',
@@ -189,24 +189,24 @@ export function HeroCarousel() {
         onClick={prevSlide}
         onMouseEnter={() => setIsAutoPlaying(false)}
         onMouseLeave={() => setIsAutoPlaying(true)}
-        className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-colors"
+        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-9 h-9 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-colors"
         style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
         onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
         onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
       >
-        <ChevronLeft className="w-6 h-6 text-white" />
+        <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-white" />
       </button>
 
       <button
         onClick={nextSlide}
         onMouseEnter={() => setIsAutoPlaying(false)}
         onMouseLeave={() => setIsAutoPlaying(true)}
-        className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-colors"
+        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-9 h-9 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-colors"
         style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
         onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
         onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
       >
-        <ChevronRight className="w-6 h-6 text-white" />
+        <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-white" />
       </button>
 
       {/* Dots Indicator */}

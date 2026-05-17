@@ -151,6 +151,7 @@ export function Navbar() {
                 localStorage.setItem('userCoords', JSON.stringify({ latitude, longitude }));
                 setIsLocationOpen(false);
                 setIsDetectingLocation(false);
+                window.location.reload();
                 return;
               }
             }
@@ -180,6 +181,7 @@ export function Navbar() {
             localStorage.setItem('locationType', 'auto');
             localStorage.setItem('userCoords', JSON.stringify({ latitude, longitude }));
             setIsLocationOpen(false);
+            window.location.reload();
           } catch (error) {
             console.error('Error getting location name:', error);
             alert('Unable to detect your location. Please enter pincode manually.');
@@ -230,6 +232,7 @@ export function Navbar() {
         localStorage.setItem('userCity', cityName);
         setIsLocationOpen(false);
         setShowPincodeInput(false);
+        window.location.reload();
       } else {
         alert('Invalid pincode. Please try again.');
       }
@@ -244,6 +247,7 @@ export function Navbar() {
       localStorage.setItem('userPincode', pincode);
       setIsLocationOpen(false);
       setShowPincodeInput(false);
+      window.location.reload();
     }
   };
 

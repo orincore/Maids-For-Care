@@ -82,17 +82,17 @@ export default function HomePage() {
       <HeroCarousel />
 
       {/* Real Service Cards by Location */}
-      <section className="py-16" style={{ backgroundColor: colors.background.secondary }}>
+      <section className="py-10 md:py-16" style={{ backgroundColor: colors.background.secondary }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-8 md:mb-12">
             <div className="flex items-center justify-center mb-3">
               <MapPin className="w-5 h-5 mr-2" style={{ color: colors.primary[600] }} />
               <span className="text-sm font-medium" style={{ color: colors.text.secondary }}>
                 Services in {userLocation || 'your area'}
               </span>
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: colors.text.primary }}>
+            <h2 className="text-2xl md:text-4xl font-bold mb-4" style={{ color: colors.text.primary }}>
               Available Services Near You
             </h2>
             <p className="text-lg max-w-2xl mx-auto" style={{ color: colors.text.secondary }}>
@@ -127,7 +127,7 @@ export default function HomePage() {
             </div>
           ) : (
             <>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
                 {providers.slice(0, 6).map((provider) => {
                   const serviceLabels: string[] = provider.services?.length > 0
                     ? (provider.services as any[]).map((s: any) => s?.name || s).filter(Boolean)
@@ -217,7 +217,7 @@ export default function HomePage() {
               <div className="text-center">
                 <button
                   onClick={() => router.push('/services')}
-                  className="inline-flex items-center px-8 py-4 text-lg font-semibold rounded-lg transition-colors"
+                  className="inline-flex w-full sm:w-auto items-center justify-center px-8 py-3.5 md:py-4 text-base md:text-lg font-semibold rounded-lg transition-colors"
                   style={{ backgroundColor: colors.primary[950], color: colors.text.inverse }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.primary[800])}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = colors.primary[950])}

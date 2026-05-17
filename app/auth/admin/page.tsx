@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Shield } from 'lucide-react';
 
@@ -15,6 +15,21 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showSecretKey, setShowSecretKey] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem('adminToken');
+    const adminUser = localStorage.getItem('adminUser');
+    if (token && adminUser) {
+      try {
+        const parsed = JSON.parse(adminUser);
+        if (parsed.role === 'admin') {
+          router.replace('/admin');
+        }
+      } catch {
+        // corrupted data — let them log in again
+      }
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +104,7 @@ export default function AdminLoginPage() {
                 type="email"
                 required
                 className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-red-500 focus:border-red-500"
-                placeholder="admin@Maids For Care.com"
+                placeholder="info@maidsforcare.com"
                 value={formData.email}
                 onChange={handleChange}
               />
@@ -181,7 +196,7 @@ export default function AdminLoginPage() {
         <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
           <h3 className="text-sm font-medium text-yellow-800 mb-2">Development Credentials:</h3>
           <div className="text-xs text-yellow-700 space-y-1">
-            <p><strong>Email:</strong> admin@Maids For Care.com</p>
+            <p><strong>Email:</strong> info@maidsforcare.com</p>
             <p><strong>Password:</strong> Admin@123456</p>
             <p><strong>Secret Key:</strong> super-secret-admin-key-2024</p>
           </div>
