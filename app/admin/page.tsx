@@ -493,9 +493,12 @@ export default function AdminDashboard() {
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
+          <div className="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center mb-1">
+            <ShieldCheck className="w-5 h-5 text-white" />
+          </div>
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-900 border-t-transparent" />
           <p className="text-sm text-gray-500">Loading dashboard…</p>
         </div>
       </div>
@@ -510,81 +513,25 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50 flex">
 
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <header className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 shadow-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              {/* Mobile hamburger */}
-              <button
-                className="lg:hidden p-2 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-              <h1 className="text-lg sm:text-xl font-bold text-white leading-tight">
-                Admin Dashboard
-              </h1>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center text-white font-semibold text-sm ring-2 ring-gray-600 flex-shrink-0">
-                  {user?.name?.charAt(0).toUpperCase()}
-                </div>
-                <div className="hidden sm:block">
-                  <p className="text-gray-200 text-sm font-medium leading-none">{user?.name}</p>
-                  <p className={`text-xs mt-0.5 inline-flex px-1.5 py-0.5 rounded-full font-medium ${ROLE_COLORS[user?.role || ''] || ''}`}>
-                    {ROLE_LABELS[user?.role || ''] || user?.role}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 px-2.5 py-1.5 rounded-lg transition-colors ring-1 ring-gray-600"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
-            </div>
+      {/* ══════════════════════════════════════════════
+          Desktop Sidebar
+      ══════════════════════════════════════════════ */}
+      <aside className="hidden lg:flex flex-col w-60 bg-white border-r border-gray-200 fixed inset-y-0 left-0 z-30">
+        {/* Brand */}
+        <div className="flex items-center gap-3 px-5 h-16 border-b border-gray-100 flex-shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-gray-900 flex items-center justify-center flex-shrink-0">
+            <ShieldCheck className="w-4 h-4 text-white" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-gray-900 leading-none">Admin Panel</p>
+            <p className="text-xs text-gray-400 mt-0.5">Maids For Care</p>
           </div>
         </div>
-      </header>
 
-      {/* ── Mobile sidebar backdrop ──────────────────────────────────────────── */}
-      <div
-        className={`lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 ${
-          mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={() => setMobileMenuOpen(false)}
-      />
-
-      {/* ── Mobile sidebar drawer ────────────────────────────────────────────── */}
-      <div
-        ref={menuRef}
-        className={`lg:hidden fixed inset-y-0 left-0 z-50 w-72 bg-gray-900 flex flex-col transform transition-transform duration-300 ease-in-out ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        {/* Sidebar header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700/60">
-          <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-gray-700 flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4 text-gray-300" />
-            </div>
-            <span className="text-white font-bold text-base tracking-tight">Admin Panel</span>
-          </div>
-          <button
-            onClick={() => setMobileMenuOpen(false)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Nav links */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-0.5">
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
           {tabs.map(tab => {
             const Icon = tab.icon;
             const active = activeTab === tab.id && !tab.href;
@@ -592,10 +539,10 @@ export default function AdminDashboard() {
               <button
                 key={tab.id}
                 onClick={() => selectTab(tab.id)}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all w-full text-left ${
+                className={`flex items-center w-full gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   active
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                    ? 'bg-gray-900 text-white'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
@@ -605,52 +552,139 @@ export default function AdminDashboard() {
           })}
         </nav>
 
-        {/* User info + logout */}
-        <div className="border-t border-gray-700/60 px-5 py-4">
+        {/* User + logout */}
+        <div className="border-t border-gray-100 px-4 py-4 flex-shrink-0">
           <div className="flex items-center gap-3 mb-3">
-            <div className="h-9 w-9 rounded-full bg-gray-700 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 ring-2 ring-gray-600">
+            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-700 flex-shrink-0">
               {user?.name?.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-              <p className={`text-xs mt-0.5 inline-flex px-1.5 py-0.5 rounded-full font-medium ${ROLE_COLORS[user?.role || ''] || ''}`}>
-                {ROLE_LABELS[user?.role || ''] || user?.role}
-              </p>
+              <p className="text-sm font-semibold text-gray-900 truncate">{user?.name}</p>
+              <p className="text-xs text-gray-500 truncate">{ROLE_LABELS[user?.role || ''] || user?.role}</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 w-full text-sm text-gray-400 hover:text-white hover:bg-gray-800 px-3 py-2 rounded-lg transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-sm text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
           >
             <LogOut className="w-4 h-4" />
-            Logout
+            Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* ══════════════════════════════════════════════
+          Main area
+      ══════════════════════════════════════════════ */}
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-60">
+
+      {/* ── Top header bar ── */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-20 h-16 flex items-center px-4 sm:px-6 gap-3 flex-shrink-0">
+        {/* Mobile hamburger */}
+        <button
+          className="lg:hidden p-2 -ml-1 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Mobile brand */}
+        <div className="flex items-center gap-2 lg:hidden">
+          <div className="w-7 h-7 rounded-lg bg-gray-900 flex items-center justify-center">
+            <ShieldCheck className="w-3.5 h-3.5 text-white" />
+          </div>
+          <span className="text-sm font-bold text-gray-900">Admin</span>
+        </div>
+
+        {/* Desktop: current section title */}
+        <h1 className="hidden lg:block text-base font-semibold text-gray-900">
+          {tabs.find(t => t.id === activeTab)?.label || 'Dashboard'}
+        </h1>
+
+        {/* Right side */}
+        <div className="ml-auto flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2.5 pr-3 mr-1 border-r border-gray-200">
+            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-700 flex-shrink-0">
+              {user?.name?.charAt(0).toUpperCase()}
+            </div>
+            <div className="hidden md:block leading-none">
+              <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
+              <span className={`text-xs mt-0.5 inline-flex px-1.5 py-0.5 rounded-full font-medium ${ROLE_COLORS[user?.role || ''] || ''}`}>
+                {ROLE_LABELS[user?.role || ''] || user?.role}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-rose-600 hover:bg-rose-50 border border-gray-200 hover:border-rose-200 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Sign Out</span>
+          </button>
+        </div>
+      </header>
+
+      {/* ── Mobile sidebar backdrop ── */}
+      <div
+        className={`lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300 ${
+          mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setMobileMenuOpen(false)}
+      />
+
+      {/* ── Mobile sidebar drawer ── */}
+      <div
+        ref={menuRef}
+        className={`lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col transform transition-transform duration-300 ease-in-out ${
+          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between px-5 h-16 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-gray-900 flex items-center justify-center">
+              <ShieldCheck className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="text-sm font-bold text-gray-900">Admin Panel</span>
+          </div>
+          <button onClick={() => setMobileMenuOpen(false)} className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+          {tabs.map(tab => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.id && !tab.href;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => selectTab(tab.id)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all w-full ${
+                  active ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+        <div className="border-t border-gray-100 px-4 py-4 flex-shrink-0">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-700 flex-shrink-0">
+              {user?.name?.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-gray-900 truncate">{user?.name}</p>
+              <p className="text-xs text-gray-500 truncate">{ROLE_LABELS[user?.role || ''] || user?.role}</p>
+            </div>
+          </div>
+          <button onClick={handleLogout} className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-sm text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-colors">
+            <LogOut className="w-4 h-4" />Sign Out
           </button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-
-        {/* ── Desktop tab nav ──────────────────────────────────────────────────── */}
-        <div className="hidden lg:block mb-8">
-          <nav className="flex flex-wrap gap-1 bg-white rounded-xl shadow-sm ring-1 ring-gray-200 p-1.5">
-            {tabs.map(tab => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => selectTab(tab.id)}
-                  className={`flex items-center gap-1.5 py-2 px-3 xl:px-4 rounded-lg text-sm font-medium transition-all ${
-                    active ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
+      <main className="flex-1 px-4 sm:px-6 py-6 sm:py-8 max-w-7xl mx-auto w-full">
 
         {/* ════════════════════════════════════════════════════════════════════ */}
         {/* OVERVIEW TAB                                                       */}
@@ -1661,7 +1695,8 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
-      </div>
+      </main>
+      </div>{/* /main area */}
 
       {/* ── Create Admin Modal ────────────────────────────────────────────────── */}
       {showAdminModal && (
