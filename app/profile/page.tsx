@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
@@ -55,7 +55,7 @@ function Avatar({ name, image, size = 'lg' }: { name: string; image?: string; si
   );
 }
 
-export default function ProfilePage() {
+function ProfilePageInner() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -396,5 +396,17 @@ function TextInput({ value, onChange, placeholder, type = 'text' }: { value: str
       placeholder={placeholder}
       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent"
     />
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
+      </div>
+    }>
+      <ProfilePageInner />
+    </Suspense>
   );
 }
