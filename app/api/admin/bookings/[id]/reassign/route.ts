@@ -4,7 +4,8 @@ import Booking from '@/models/Booking';
 import ServiceProvider from '@/models/ServiceProvider';
 import User from '@/models/User';
 import Notification from '@/models/Notification';
-import { verifyAdminToken } from '@/lib/adminAuth';
+import { getAdminFromRequest, requirePermission } from '@/lib/adminAuth';
+import { logActivity } from '@/lib/activityLogger';
 import { sendBookingReassignedEmail } from '@/lib/emailService';
 
 export async function PATCH(
@@ -15,14 +16,9 @@ export async function PATCH(
     await dbConnect();
     const { id } = await params;
 
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-
-    const adminData = verifyAdminToken(token);
-    if (!adminData || !adminData.isHardcodedAdmin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    const adminData = getAdminFromRequest(request.headers.get('authorization'));
+    if (!adminData || !requirePermission(adminData, 'assign_provider')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { newProviderId, reason, comment } = await request.json();
@@ -141,6 +137,8 @@ export async function PATCH(
     } catch (emailErr) {
       console.error('[Email] booking.reassigned error:', emailErr);
     }
+
+    await logActivity(adminData, 'REASSIGN_PROVIDER', 'booking', id, { newProviderId, reason }, request);
 
     return NextResponse.json({ message: 'Maid reassigned successfully', booking: updated });
   } catch (error) {

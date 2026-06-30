@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import ServiceProvider from '@/models/ServiceProvider';
 import '@/models/Service'; // Ensure Service model is registered for populate
-import { verifyAdminToken } from '@/lib/adminAuth';
+import { getAdminFromRequest, requirePermission } from '@/lib/adminAuth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,21 +38,9 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
     
-    // Verify admin token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const adminData = verifyAdminToken(token);
-    if (!adminData || !adminData.isHardcodedAdmin) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      );
+    const adminData = getAdminFromRequest(request.headers.get('authorization'));
+    if (!adminData || !requirePermission(adminData, 'manage_providers')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const serviceProviderData = await request.json();

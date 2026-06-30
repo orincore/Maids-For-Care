@@ -1,70 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
+import dbConnect from '@/lib/mongodb';
+import Admin from '@/models/Admin';
+import { generateAdminToken } from '@/lib/adminAuth';
+import { logActivity } from '@/lib/activityLogger';
 
-// Hardcoded admin credentials
-const ADMIN_CREDENTIALS = {
-  email: process.env.ADMIN_EMAIL || 'admin@Maids For Care.com',
+const HARDCODED = {
+  email: (process.env.ADMIN_EMAIL || 'admin@maidease.com').toLowerCase(),
   password: process.env.ADMIN_PASSWORD || 'Admin@123456',
-  name: 'System Administrator',
-  role: 'admin',
-  id: 'admin_hardcoded_id',
+  secretKey: process.env.ADMIN_SECRET_KEY || '',
 };
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, secretKey } = await request.json();
+    const { email, password } = await request.json();
 
-    // Verify admin secret key
-    if (secretKey !== process.env.ADMIN_SECRET_KEY) {
-      return NextResponse.json(
-        { error: 'Invalid admin access key' },
-        { status: 401 }
-      );
+    if (!email || !password) {
+      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    // Check email
-    if (email !== ADMIN_CREDENTIALS.email) {
-      return NextResponse.json(
-        { error: 'Invalid admin credentials' },
-        { status: 401 }
-      );
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // ── Hardcoded super admin path ──────────────────────────────────────────
+    if (normalizedEmail === HARDCODED.email) {
+      if (password !== HARDCODED.password) {
+        return NextResponse.json({ error: 'Invalid admin credentials' }, { status: 401 });
+      }
+
+      const payload = {
+        id: 'super_admin_hardcoded',
+        email: HARDCODED.email,
+        name: 'System Administrator',
+        role: 'super_admin' as const,
+        isHardcoded: true,
+      };
+      const token = generateAdminToken(payload);
+
+      await logActivity(payload, 'ADMIN_LOGIN', 'auth', null, { method: 'hardcoded' }, request);
+
+      return NextResponse.json({
+        message: 'Admin login successful',
+        token,
+        user: { id: payload.id, name: payload.name, email: payload.email, role: payload.role },
+      });
     }
 
-    // Check password
-    if (password !== ADMIN_CREDENTIALS.password) {
-      return NextResponse.json(
-        { error: 'Invalid admin credentials' },
-        { status: 401 }
-      );
+    // ── DB admin path ────────────────────────────────────────────────────────
+    await dbConnect();
+    const admin = await Admin.findOne({ email: normalizedEmail, isActive: true });
+    if (!admin) {
+      return NextResponse.json({ error: 'Invalid admin credentials' }, { status: 401 });
     }
 
-    // Generate admin token with special payload
-    const adminToken = JSON.stringify({
-      id: ADMIN_CREDENTIALS.id,
-      email: ADMIN_CREDENTIALS.email,
-      role: ADMIN_CREDENTIALS.role,
-      isHardcodedAdmin: true,
-      timestamp: Date.now(),
-    });
+    const passwordOk = await bcrypt.compare(password, admin.password);
+    if (!passwordOk) {
+      return NextResponse.json({ error: 'Invalid admin credentials' }, { status: 401 });
+    }
 
-    // Return admin user data (without password)
-    const adminUser = {
-      id: ADMIN_CREDENTIALS.id,
-      name: ADMIN_CREDENTIALS.name,
-      email: ADMIN_CREDENTIALS.email,
-      role: ADMIN_CREDENTIALS.role,
-      isHardcodedAdmin: true,
+    const payload = {
+      id: String(admin._id),
+      email: admin.email,
+      name: admin.name,
+      role: admin.role as 'super_admin' | 'admin' | 'support_agent',
     };
+    const token = generateAdminToken(payload);
+
+    await logActivity(payload, 'ADMIN_LOGIN', 'auth', String(admin._id), { method: 'db' }, request);
 
     return NextResponse.json({
       message: 'Admin login successful',
-      user: adminUser,
-      token: adminToken,
+      token,
+      user: { id: payload.id, name: payload.name, email: payload.email, role: payload.role },
     });
   } catch (error) {
     console.error('Admin login error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

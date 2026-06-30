@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Review from '@/models/Review';
-import { verifyAdminToken } from '@/lib/adminAuth';
+import { getAdminFromRequest, requirePermission } from '@/lib/adminAuth';
+import { logActivity } from '@/lib/activityLogger';
 
 export async function PATCH(
   request: NextRequest,
@@ -10,22 +11,10 @@ export async function PATCH(
   try {
     await dbConnect();
     const { id } = await params;
-    
-    // Verify admin token for admin response
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
 
-    const adminData = verifyAdminToken(token);
-    if (!adminData || !adminData.isHardcodedAdmin) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      );
+    const adminData = getAdminFromRequest(request.headers.get('authorization'));
+    if (!adminData || !requirePermission(adminData, 'view_reviews')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { adminResponse } = await request.json();
@@ -36,7 +25,7 @@ export async function PATCH(
         adminResponse: {
           message: adminResponse,
           respondedAt: new Date(),
-          respondedBy: adminData.userId,
+          respondedBy: adminData.id,
         },
       },
       { new: true }
@@ -45,22 +34,15 @@ export async function PATCH(
      .populate('service', 'name category');
 
     if (!review) {
-      return NextResponse.json(
-        { error: 'Review not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Review not found' }, { status: 404 });
     }
 
-    return NextResponse.json({
-      message: 'Admin response added successfully',
-      review,
-    });
+    await logActivity(adminData, 'RESPOND_TO_REVIEW', 'review', id, { adminResponse }, request);
+
+    return NextResponse.json({ message: 'Admin response added successfully', review });
   } catch (error) {
     console.error('Review update error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -71,41 +53,22 @@ export async function DELETE(
   try {
     await dbConnect();
     const { id } = await params;
-    
-    // Verify admin token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
 
-    const adminData = verifyAdminToken(token);
-    if (!adminData || !adminData.isHardcodedAdmin) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      );
+    const adminData = getAdminFromRequest(request.headers.get('authorization'));
+    if (!adminData || !requirePermission(adminData, 'delete_reviews')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const review = await Review.findByIdAndDelete(id);
-
     if (!review) {
-      return NextResponse.json(
-        { error: 'Review not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Review not found' }, { status: 404 });
     }
 
-    return NextResponse.json({
-      message: 'Review deleted successfully',
-    });
+    await logActivity(adminData, 'DELETE_REVIEW', 'review', id, {}, request);
+
+    return NextResponse.json({ message: 'Review deleted successfully' });
   } catch (error) {
     console.error('Review deletion error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

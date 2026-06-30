@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, MapPin, Star, Clock } from 'lucide-react';
+import { ArrowRight, MapPin, Star, Clock, Share2, Gift, IndianRupee, Users } from 'lucide-react';
 import { colors } from '@/lib/colors';
 import { HeroCarousel } from '@/components/layout/HeroCarousel';
 import { TrustSection } from '@/components/layout/FeatureCards';
@@ -135,7 +135,8 @@ export default function HomePage() {
                   return (
                     <div
                       key={provider._id}
-                      className="bg-white rounded-2xl border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden"
+                      className="bg-white rounded-2xl border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden cursor-pointer"
+                      onClick={() => router.push(`/service-provider/${provider._id}`)}
                     >
                       {/* Card header */}
                       <div className="flex items-start gap-4 p-5 pb-4">
@@ -203,7 +204,7 @@ export default function HomePage() {
                       {/* CTA */}
                       <div className="px-5 pb-5 pt-2">
                         <button
-                          onClick={() => router.push(`/book?provider=${provider._id}`)}
+                          onClick={(e) => { e.stopPropagation(); router.push(`/book?provider=${provider._id}`); }}
                           className="w-full py-2.5 rounded-xl text-sm font-semibold bg-black text-white hover:bg-gray-800 transition-colors"
                         >
                           Book Now
@@ -228,6 +229,72 @@ export default function HomePage() {
               </div>
             </>
           )}
+        </div>
+      </section>
+
+      {/* Refer & Earn Banner */}
+      <section className="py-12 md:py-20 overflow-hidden relative" style={{ background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)' }}>
+        {/* Decorative blobs */}
+        <div className="absolute top-0 left-1/4 w-72 h-72 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #7c3aed, transparent)', filter: 'blur(60px)', transform: 'translate(-50%, -50%)' }} />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #2563eb, transparent)', filter: 'blur(80px)', transform: 'translate(50%, 50%)' }} />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          {/* Badge */}
+          <div className="flex justify-center mb-5">
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase" style={{ background: 'rgba(124,58,237,0.25)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.4)' }}>
+              <Gift className="w-3.5 h-3.5" />
+              Refer &amp; Earn Program
+            </span>
+          </div>
+
+          {/* Headline */}
+          <div className="text-center mb-10 md:mb-14">
+            <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight tracking-tight">
+              Share a Maid.<br className="hidden sm:block" />
+              <span style={{ background: 'linear-gradient(90deg, #a78bfa, #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                {' '}Earn Real Money.
+              </span>
+            </h2>
+            <p className="text-base md:text-lg max-w-xl mx-auto" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              Recommend your favourite maid to friends &amp; family. Every time they complete a booking using your link, you earn a commission — automatically.
+            </p>
+          </div>
+
+          {/* Steps */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-10 md:mb-14 max-w-3xl mx-auto">
+            {[
+              { step: '01', icon: Share2, title: 'Share Your Link', desc: 'Get a unique referral link for any maid. Share it on WhatsApp, Instagram, or anywhere.', color: '#a78bfa' },
+              { step: '02', icon: Users, title: 'Friend Books', desc: 'Your friend clicks the link, finds the maid, and completes a booking with payment.', color: '#60a5fa' },
+              { step: '03', icon: IndianRupee, title: 'You Earn', desc: 'Commission is credited to your account instantly after their payment is confirmed.', color: '#34d399' },
+            ].map(({ step, icon: Icon, title, desc, color }) => (
+              <div key={step} className="relative rounded-2xl p-5 md:p-6" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)' }}>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${color}20`, border: `1px solid ${color}40` }}>
+                    <Icon className="w-5 h-5" style={{ color }} />
+                  </div>
+                  <span className="text-xs font-bold tracking-widest" style={{ color: `${color}99` }}>STEP {step}</span>
+                </div>
+                <h3 className="text-base font-bold text-white mb-1.5">{title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-xl text-base font-bold text-white transition-all hover:scale-105 active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)', boxShadow: '0 0 32px rgba(124,58,237,0.4)' }}
+            >
+              <Gift className="w-5 h-5" />
+              Start Referring Now
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              No minimum — earn on every booking
+            </p>
+          </div>
         </div>
       </section>
 

@@ -41,6 +41,7 @@ interface BookingDetail {
     profileImage?: string;
     isVerified: boolean;
     rating: number;
+    totalReviews: number;
     experience: number;
   };
   scheduledDate: string;
@@ -251,9 +252,15 @@ export default function BookingDetailPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-1 mb-2">
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                    <span className="font-medium">{booking.serviceProvider.rating.toFixed(1)}</span>
-                    <span className="text-gray-500">({booking.serviceProvider.experience} yrs exp)</span>
+                    {booking.serviceProvider.totalReviews > 0 ? (
+                      <>
+                        <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                        <span className="font-medium">{booking.serviceProvider.rating.toFixed(1)}</span>
+                        <span className="text-gray-500">({booking.serviceProvider.totalReviews} reviews · {booking.serviceProvider.experience} yrs exp)</span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-gray-400 italic">{booking.serviceProvider.experience} yrs exp · No reviews yet</span>
+                    )}
                   </div>
                   <div className="space-y-1 text-sm text-gray-600">
                     <div className="flex items-center gap-2">

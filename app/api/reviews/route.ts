@@ -50,18 +50,16 @@ export async function POST(request: NextRequest) {
 
     const { bookingId, rating, comment, aspects } = await request.json();
 
-    // Verify booking exists and belongs to user
-    const booking = await Booking.findOne({
-      _id: bookingId,
-      user: userId,
-      status: 'completed',
-    }).populate('serviceProvider service');
+    // Verify booking belongs to user and has a maid assigned
+    const booking = await Booking.findOne({ _id: bookingId, user: userId }).populate('serviceProvider service');
 
-    if (!booking) {
-      return NextResponse.json(
-        { error: 'Booking not found or not completed' },
-        { status: 404 }
-      );
+    if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    if (!booking.serviceProvider) return NextResponse.json({ error: 'No maid assigned to this booking' }, { status: 400 });
+
+    const isCompleted = booking.status === 'completed';
+    const isPast24h = Date.now() - new Date(booking.createdAt).getTime() > 24 * 60 * 60 * 1000;
+    if (!isCompleted && !isPast24h) {
+      return NextResponse.json({ error: 'Rating is available after the service is completed or 24 hours from booking' }, { status: 400 });
     }
 
     // Check if review already exists

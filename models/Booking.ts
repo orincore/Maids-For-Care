@@ -68,6 +68,10 @@ const BookingSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  referredByCode: {
+    type: String,
+    default: null,
+  },
   maidsAssignmentHistory: [{
     serviceProvider: {
       type: mongoose.Schema.Types.ObjectId,

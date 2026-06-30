@@ -190,10 +190,12 @@ export default function ServiceProvidersPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">
-                {serviceProviders.length > 0 
-                  ? (serviceProviders.reduce((sum, p) => sum + p.rating, 0) / serviceProviders.length).toFixed(1)
-                  : '0.0'
-                }
+                {(() => {
+                  const rated = serviceProviders.filter(p => p.totalReviews > 0);
+                  return rated.length > 0
+                    ? (rated.reduce((sum, p) => sum + p.rating, 0) / rated.length).toFixed(1)
+                    : '—';
+                })()}
               </div>
             </CardContent>
           </Card>
@@ -263,9 +265,15 @@ export default function ServiceProvidersPage() {
                     </div>
 
                     <div className="grid md:grid-cols-3 gap-4 text-sm text-gray-600 mb-4">
-                      <div className="flex items-center">
-                        <Star className="w-4 h-4 mr-2 text-yellow-400" />
-                        {provider.rating.toFixed(1)} ({provider.totalReviews} reviews)
+                      <div className="flex items-center gap-1">
+                        {provider.totalReviews > 0 ? (
+                          <>
+                            <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                            <span>{provider.rating.toFixed(1)} ({provider.totalReviews} reviews)</span>
+                          </>
+                        ) : (
+                          <span className="italic text-gray-400">No reviews yet</span>
+                        )}
                       </div>
                       <div>
                         Experience: {provider.experience} years
@@ -339,7 +347,7 @@ export default function ServiceProvidersPage() {
                   <p><strong>Email:</strong> {selectedProvider.email}</p>
                   <p><strong>Phone:</strong> {selectedProvider.phone}</p>
                   <p><strong>Experience:</strong> {selectedProvider.experience} years</p>
-                  <p><strong>Rating:</strong> {selectedProvider.rating.toFixed(1)} ({selectedProvider.totalReviews} reviews)</p>
+                  <p><strong>Rating:</strong> {selectedProvider.totalReviews > 0 ? `${selectedProvider.rating.toFixed(1)} (${selectedProvider.totalReviews} reviews)` : 'No reviews yet'}</p>
                 </div>
               </div>
 

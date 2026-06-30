@@ -67,6 +67,17 @@ export interface BookingEmailData {
   reassignComment?: string;
 }
 
+export interface ReferralPayoutEmailData {
+  referrerName: string;
+  referrerEmail: string;
+  commissionAmount: number;
+  transactionId: string;
+  referredUserName: string;
+  serviceName: string;
+  bookingAmount: number;
+  commissionRate: number;
+}
+
 export interface ProviderEmailData {
   providerName: string;
   providerEmail: string;
@@ -85,6 +96,8 @@ const accentColor = '#7c3aed';
 const fromName = process.env.SMTP_FROM_NAME || 'Maids For Care';
 const fromEmail = process.env.SMTP_USER || 'info@maidsforcare.com';
 const siteUrl = process.env.NEXTAUTH_URL || 'https://maidsforcare.com';
+const supportWhatsApp = '9130729146';
+const supportWhatsAppUrl = `https://wa.me/91${supportWhatsApp}`;
 
 const emailLayout = (title: string, body: string) => `
 <!DOCTYPE html>
@@ -118,6 +131,11 @@ const emailLayout = (title: string, body: string) => `
         <!-- Footer -->
         <tr>
           <td style="background:#f9f9fb;padding:24px 40px;border-top:1px solid #e8e8ec;text-align:center;">
+            <p style="margin:0 0 10px;color:#555;font-size:13px;font-weight:600;">Need help? Contact Customer Support</p>
+            <a href="${supportWhatsAppUrl}" style="display:inline-block;background:#25D366;color:#ffffff;text-decoration:none;font-size:13px;font-weight:600;padding:8px 20px;border-radius:20px;margin-bottom:14px;">
+              💬 WhatsApp: +91 ${supportWhatsApp}
+            </a>
+            <p style="margin:0 0 8px;color:#aaa;font-size:11px;">WhatsApp support only · Mon–Sat, 9 AM – 7 PM</p>
             <p style="margin:0 0 8px;color:#888;font-size:12px;">
               © ${new Date().getFullYear()} Maids For Care · Mumbai, Maharashtra, India
             </p>
@@ -301,8 +319,8 @@ Maids For Care`,
       ` : '<div style="margin-bottom:24px;"></div>'}
 
       <p style="color:#888;font-size:13px;margin:0 0 20px;">
-        If you have any questions or concerns, feel free to reach out to us at
-        <a href="mailto:info@maidsforcare.com" style="color:${accentColor};">info@maidsforcare.com</a>.
+        If you have any questions or concerns, reach us on WhatsApp:
+        <a href="${supportWhatsAppUrl}" style="color:#25D366;font-weight:600;">+91 ${supportWhatsApp}</a> (WhatsApp only).
       </p>
       ${ctaButton('View My Booking', `${siteUrl}/dashboard`)}
     `),
@@ -335,7 +353,7 @@ Maids For Care`,
           ${d.providerPhone ? infoRow('Maid Contact', d.providerPhone) : ''}
         </table>
       </div>
-      <p style="color:#888;font-size:13px;margin:0 0 20px;">If you have any concerns, please contact your maid directly or reach out to our support team.</p>
+      <p style="color:#888;font-size:13px;margin:0 0 20px;">If you have any concerns, contact your maid directly or reach our support on WhatsApp: <a href="${supportWhatsAppUrl}" style="color:#25D366;font-weight:600;">+91 ${supportWhatsApp}</a> (WhatsApp only).</p>
     `),
   }),
 
@@ -396,7 +414,7 @@ Maids For Care`,
           <li>You'll be able to start accepting bookings</li>
         </ol>
       </div>
-      <p style="color:#888;font-size:13px;margin:0;">If you have any questions, reply to this email or contact <a href="mailto:info@maidsforcare.com" style="color:${accentColor};">info@maidsforcare.com</a>.</p>
+      <p style="color:#888;font-size:13px;margin:0;">If you have any questions, reach us on WhatsApp: <a href="${supportWhatsAppUrl}" style="color:#25D366;font-weight:600;">+91 ${supportWhatsApp}</a> (WhatsApp only).</p>
     `),
   }),
 
@@ -413,7 +431,7 @@ Maids For Care`,
           ${d.address ? infoRow('Address', d.address) : ''}
         </table>
       </div>
-      <p style="color:#888;font-size:13px;margin:0;">Please be on time. If you have any issues, contact our support team immediately.</p>
+      <p style="color:#888;font-size:13px;margin:0;">Please be on time. If you have any issues, contact our support team on WhatsApp immediately: <a href="${supportWhatsAppUrl}" style="color:#25D366;font-weight:600;">+91 ${supportWhatsApp}</a>.</p>
     `),
   }),
 };
@@ -516,4 +534,52 @@ export function sendBookingCancelledEmail(data: BookingEmailData): void {
 export function sendProviderRegisteredEmail(data: ProviderEmailData): void {
   const t = templates.provider_registered(data);
   fire(data.providerEmail, t.subject, t.html);
+}
+
+export function sendReferralPayoutEmail(data: ReferralPayoutEmailData): void {
+  const subject = `Your referral reward of ₹${data.commissionAmount} has been paid! 🎉`;
+  const html = emailLayout(subject, `
+    <tr>
+      <td style="padding:32px 40px 24px;">
+        <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111;">
+          You've been rewarded! 🎉
+        </h2>
+        <p style="margin:0 0 24px;color:#555;font-size:15px;line-height:1.6;">
+          Hi ${data.referrerName}, your referral commission has been processed and paid to your account.
+        </p>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border-radius:10px;padding:20px;margin-bottom:24px;">
+          <tr>
+            <td>
+              <p style="margin:0 0 4px;font-size:13px;color:#16a34a;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Commission Paid</p>
+              <p style="margin:0;font-size:36px;font-weight:800;color:#15803d;">₹${data.commissionAmount.toLocaleString('en-IN')}</p>
+              <p style="margin:4px 0 0;font-size:13px;color:#555;">${data.commissionRate}% of ₹${data.bookingAmount.toLocaleString('en-IN')} booking</p>
+            </td>
+          </tr>
+        </table>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+          ${[
+            ['Referred User', data.referredUserName],
+            ['Service Booked', data.serviceName],
+            ['Transaction ID', data.transactionId],
+          ].map(([label, value]) => `
+          <tr>
+            <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px;color:#888;width:40%;">${label}</td>
+            <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#111;font-weight:600;">${value}</td>
+          </tr>`).join('')}
+        </table>
+
+        <p style="margin:0 0 24px;color:#555;font-size:14px;line-height:1.6;">
+          Keep sharing your referral link to earn more rewards every time a friend books a service!
+        </p>
+
+        <p style="margin:24px 0 0;font-size:13px;color:#888;">
+          If you have any questions about this payment, reach us on WhatsApp:
+          <a href="${supportWhatsAppUrl}" style="color:#25D366;font-weight:600;">+91 ${supportWhatsApp}</a> (WhatsApp only).
+        </p>
+      </td>
+    </tr>
+  `);
+  fire(data.referrerEmail, subject, html);
 }

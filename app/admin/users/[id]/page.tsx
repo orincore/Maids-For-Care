@@ -32,7 +32,7 @@ interface Booking {
   _id: string;
   service?: { name: string; category: string };
   services?: { name: string; category: string }[];
-  serviceProvider?: { _id: string; name: string; phone: string; email: string; isVerified: boolean; rating: number };
+  serviceProvider?: { _id: string; name: string; phone: string; email: string; isVerified: boolean; rating: number; totalReviews: number };
   scheduledDate: string;
   scheduledTime: string;
   totalAmount: number;
@@ -51,6 +51,7 @@ interface ServiceProviderOption {
   email: string;
   isVerified: boolean;
   rating: number;
+  totalReviews: number;
   experience: number;
 }
 
@@ -323,10 +324,10 @@ export default function UserDetailPage() {
                             </div>
                             <p className="text-xs text-gray-500">{booking.serviceProvider.phone}</p>
                             <p className="text-xs text-gray-500">{booking.serviceProvider.email}</p>
-                            {booking.serviceProvider.rating > 0 && (
+                            {booking.serviceProvider.totalReviews > 0 && (
                               <div className="flex items-center gap-1 mt-1">
-                                <Star className="w-3 h-3 text-yellow-400" />
-                                <span className="text-xs text-gray-600">{booking.serviceProvider.rating.toFixed(1)}</span>
+                                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                <span className="text-xs text-gray-600">{booking.serviceProvider.rating.toFixed(1)} ({booking.serviceProvider.totalReviews})</span>
                               </div>
                             )}
                           </div>
@@ -403,7 +404,7 @@ export default function UserDetailPage() {
                     .filter(p => p._id !== selectedBooking.serviceProvider?._id)
                     .map(p => (
                       <option key={p._id} value={p._id}>
-                        {p.name} — {p.phone} {p.isVerified ? '✓' : ''} | ⭐ {p.rating.toFixed(1)} | {p.experience}yr exp
+                        {p.name} — {p.phone} {p.isVerified ? '✓' : ''} | {p.totalReviews > 0 ? `⭐ ${p.rating.toFixed(1)} (${p.totalReviews})` : 'No reviews'} | {p.experience}yr exp
                       </option>
                     ))}
                 </select>

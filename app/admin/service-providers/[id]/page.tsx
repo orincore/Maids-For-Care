@@ -627,9 +627,15 @@ export default function ServiceProviderDetailPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 mb-3">
-                  <Star className="w-4 h-4 fill-current text-yellow-500" />
-                  <span className="text-sm font-semibold text-gray-900">{provider.rating.toFixed(1)}</span>
-                  <span className="text-sm text-gray-500">({provider.totalReviews} reviews)</span>
+                  {provider.totalReviews > 0 ? (
+                    <>
+                      <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      <span className="text-sm font-semibold text-gray-900">{provider.rating.toFixed(1)}</span>
+                      <span className="text-sm text-gray-500">({provider.totalReviews} reviews)</span>
+                    </>
+                  ) : (
+                    <span className="text-sm text-gray-400 italic">No reviews yet</span>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-600">
                   <div className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-gray-400" /><span className="truncate">{provider.email}</span></div>

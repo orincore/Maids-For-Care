@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       totalAmount,
       address,
       specialInstructions,
+      referredByCode,
     } = await request.json();
 
     const booking = await Booking.create({
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest) {
       totalAmount,
       address,
       specialInstructions,
+      ...(referredByCode ? { referredByCode } : {}),
     });
 
     const populatedBooking = await Booking.findById(booking._id)

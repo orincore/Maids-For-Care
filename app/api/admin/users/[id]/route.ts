@@ -4,7 +4,7 @@ import User from '@/models/User';
 import Booking from '@/models/Booking';
 import '@/models/ServiceProvider';
 import '@/models/Service';
-import { verifyAdminToken } from '@/lib/adminAuth';
+import { getAdminFromRequest, requirePermission } from '@/lib/adminAuth';
 
 export async function GET(
   request: NextRequest,
@@ -14,14 +14,9 @@ export async function GET(
     await dbConnect();
     const { id } = await params;
 
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-
-    const adminData = verifyAdminToken(token);
-    if (!adminData || !adminData.isHardcodedAdmin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    const adminData = getAdminFromRequest(request.headers.get('authorization'));
+    if (!adminData || !requirePermission(adminData, 'view_users')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const user = await User.findById(id, '-password');

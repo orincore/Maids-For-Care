@@ -15,7 +15,9 @@ import {
   ShieldCheck,
   Tag,
   Zap,
+  Share2,
 } from 'lucide-react';
+import { ShareMaidModal } from '@/components/ShareMaidModal';
 
 interface ServiceProvider {
   _id: string;
@@ -59,6 +61,7 @@ function BookProviderPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   const [bookingData, setBookingData] = useState({
     scheduledDate: '',
     scheduledTime: '',
@@ -172,6 +175,19 @@ function BookProviderPage() {
     setSubmitting(true);
 
     try {
+      // Read referral code from localStorage (check expiry)
+      let referredByCode: string | undefined;
+      try {
+        const storedCode = localStorage.getItem('referralCode');
+        const expiry = parseInt(localStorage.getItem('referralCodeExpiry') || '0');
+        if (storedCode && Date.now() < expiry) {
+          referredByCode = storedCode;
+        } else {
+          localStorage.removeItem('referralCode');
+          localStorage.removeItem('referralCodeExpiry');
+        }
+      } catch {}
+
       const bookingRes = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'user-id': session.user.id },
@@ -184,6 +200,7 @@ function BookProviderPage() {
           totalAmount: bookingPrice,
           address: bookingData.address,
           specialInstructions: bookingData.specialInstructions,
+          ...(referredByCode ? { referredByCode } : {}),
         }),
       });
 
@@ -221,6 +238,9 @@ function BookProviderPage() {
               }),
             });
             if (verifyRes.ok) {
+              // Clear referral code after successful use
+              localStorage.removeItem('referralCode');
+              localStorage.removeItem('referralCodeExpiry');
               setBookingConfirmed(true);
               setTimeout(() => router.push('/dashboard?booking=success'), 4000);
             } else {
@@ -418,7 +438,7 @@ function BookProviderPage() {
 
             {/* Price block */}
             {bookingPrice > 0 && (
-              <div className="mx-5 mb-5 rounded-xl border border-gray-200 overflow-hidden">
+              <div className="mx-5 mb-4 rounded-xl border border-gray-200 overflow-hidden">
                 <div className="bg-gray-900 px-4 py-2">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Booking Price</p>
                 </div>
@@ -435,6 +455,23 @@ function BookProviderPage() {
                     <span className="text-xs text-gray-400">per booking</span>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Share & Earn */}
+            {session?.user?.id && (
+              <div className="mx-5 mb-5">
+                <button
+                  type="button"
+                  onClick={() => setShareModalOpen(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-sm font-semibold text-gray-700 transition-colors"
+                >
+                  <Share2 className="w-4 h-4 text-gray-500" />
+                  Share & Earn
+                </button>
+                <p className="text-xs text-gray-400 text-center mt-1.5">
+                  Refer a friend — earn commission on their booking
+                </p>
               </div>
             )}
           </div>
@@ -592,6 +629,24 @@ function BookProviderPage() {
           </form>
         </div>
       </div>
+
+      {/* Share modal — fixed overlay, rendered outside the grid */}
+      {session?.user?.id && provider && (
+        <ShareMaidModal
+          isOpen={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          maid={{
+            _id: provider._id,
+            name: provider.name,
+            rating: provider.rating,
+            totalReviews: provider.totalReviews,
+            profileImage: provider.profileImage,
+            specializations: provider.specializations,
+            experience: provider.experience,
+          }}
+          userId={session.user.id}
+        />
+      )}
     </div>
   );
 }

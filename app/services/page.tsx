@@ -47,6 +47,15 @@ function ServicesPage() {
     const search = searchParams.get('search') || '';
     setSearchQuery(search);
 
+    // Capture referral code from URL and persist for 30 days
+    const ref = searchParams.get('ref');
+    // Only store real codes (8 hex chars); reject "undefined", "null", empty strings
+    if (ref && /^[A-F0-9]{8}$/i.test(ref)) {
+      const expiry = Date.now() + 30 * 24 * 60 * 60 * 1000;
+      localStorage.setItem('referralCode', ref);
+      localStorage.setItem('referralCodeExpiry', String(expiry));
+    }
+
     const savedLocation = localStorage.getItem('userLocation') || '';
     const savedPincode = localStorage.getItem('userPincode') || '';
     setUserLocation(savedLocation);
@@ -216,7 +225,8 @@ function ServicesPage() {
                 return (
                   <div
                     key={provider._id}
-                    className="bg-white rounded-2xl border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden"
+                    className="bg-white rounded-2xl border border-gray-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden cursor-pointer"
+                    onClick={() => router.push(`/service-provider/${provider._id}`)}
                   >
                     {/* Card header */}
                     <div className="flex items-start gap-4 p-5 pb-4">
@@ -289,7 +299,7 @@ function ServicesPage() {
                     {/* CTA */}
                     <div className="px-5 pb-5 pt-2">
                       <button
-                        onClick={() => router.push(`/book?provider=${provider._id}`)}
+                        onClick={(e) => { e.stopPropagation(); router.push(`/book?provider=${provider._id}`); }}
                         className="w-full py-2.5 rounded-xl text-sm font-semibold bg-black text-white hover:bg-gray-800 transition-colors"
                       >
                         Book Now

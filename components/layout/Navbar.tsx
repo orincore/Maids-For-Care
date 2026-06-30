@@ -1,28 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { 
-  Menu, 
-  X, 
-  User, 
-  LogOut, 
-  Settings, 
-  Bell, 
-  Home,
-  Briefcase,
-  Calendar,
-  Star,
-  ChevronDown,
-  Search,
-  MapPin,
-  Clock
+import {
+  Menu, X, LogOut, Settings, Bell, Home, Briefcase,
+  Calendar, Star, ChevronDown, Search, MapPin, Gift,
+  ChevronRight, Navigation,
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { UserAvatar } from '@/components/ui/UserAvatar';
-import { colors } from '@/lib/colors';
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -35,722 +21,673 @@ export function Navbar() {
   const [pincode, setPincode] = useState('');
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [showPincodeInput, setShowPincodeInput] = useState(false);
+  const [mobilePincodeInput, setMobilePincodeInput] = useState(false);
   const [notifications, setNotifications] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
+
+  const searchRef = useRef<HTMLDivElement>(null);
+
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
 
-  // Don't show navbar on auth pages and admin pages
   const hideNavbar = pathname?.startsWith('/auth') || pathname?.startsWith('/admin');
 
-  // Load saved location preference on mount
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   useEffect(() => {
     const savedLocation = localStorage.getItem('userLocation');
     const savedLocationType = localStorage.getItem('locationType');
     const savedPincode = localStorage.getItem('userPincode');
-    
-    if (savedLocation) {
-      setSelectedLocation(savedLocation);
-    } else if (savedPincode) {
-      // Fallback: construct location from stored pincode if location not saved
+    if (savedLocation) setSelectedLocation(savedLocation);
+    else if (savedPincode) {
       const cityName = localStorage.getItem('userCity');
-      if (cityName) {
-        setSelectedLocation(cityName);
-      }
+      if (cityName) setSelectedLocation(cityName);
     }
-    
-    if (savedLocationType === 'pincode' && savedPincode) {
-      setLocationType('pincode');
-      setPincode(savedPincode);
-    } else if (savedLocationType === 'auto') {
-      setLocationType('auto');
-    }
+    if (savedLocationType === 'pincode' && savedPincode) { setLocationType('pincode'); setPincode(savedPincode); }
+    else if (savedLocationType === 'auto') setLocationType('auto');
   }, []);
 
-  // Popular services for search suggestions
+  useEffect(() => {
+    if (session?.user?.id) fetchNotificationCount();
+  }, [session]);
+
+  useEffect(() => {
+    if (isMenuOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isMenuOpen]);
+
   const popularServices = [
     'House Cleaning', 'Deep Cleaning', 'Kitchen Cleaning', 'Bathroom Cleaning',
     'Daily Cooking', 'Party Cooking', 'Meal Prep', 'Child Care', 'Baby Sitting',
-    'Elder Care', 'Laundry Service', 'Ironing', 'Carpet Cleaning', 'Sofa Cleaning'
+    'Elder Care', 'Laundry Service', 'Ironing', 'Carpet Cleaning', 'Sofa Cleaning',
   ];
-
-  useEffect(() => {
-    if (session?.user?.id) {
-      fetchNotificationCount();
-    }
-  }, [session]);
 
   const fetchNotificationCount = async () => {
     try {
-      const response = await fetch('/api/user/notifications', {
-        headers: {
-          'user-id': session!.user.id,
-        },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const unreadCount = data.notifications?.filter((n: any) => !n.isRead).length || 0;
-        setNotifications(unreadCount);
+      const res = await fetch('/api/user/notifications', { headers: { 'user-id': session!.user.id } });
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.notifications?.filter((n: any) => !n.isRead).length || 0);
       }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    }
+    } catch {}
   };
 
   const handleSignOut = async () => {
+    setIsMenuOpen(false);
     await signOut({ callbackUrl: '/' });
   };
 
   const handleSearch = (query: string) => {
-    if (query.trim()) {
-      router.push(`/services?search=${encodeURIComponent(query.trim())}&location=${encodeURIComponent(selectedLocation)}`);
-      setSearchQuery('');
-      setIsSearchFocused(false);
-    }
+    if (!query.trim()) return;
+    router.push(`/services?search=${encodeURIComponent(query.trim())}&location=${encodeURIComponent(selectedLocation)}`);
+    setSearchQuery('');
+    setIsSearchFocused(false);
+    setIsMenuOpen(false);
+  };
+
+  const navigate = (href: string) => {
+    router.push(href);
+    setIsMenuOpen(false);
+    setIsProfileOpen(false);
   };
 
   const detectLocation = async () => {
     setIsDetectingLocation(true);
     try {
-      if (!navigator.geolocation) {
-        alert('Geolocation is not supported by your browser');
-        return;
-      }
-
+      if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
       navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          
-          // Try to get pincode from coordinates first (more accurate for India)
+        async ({ coords: { latitude, longitude } }) => {
           try {
-            const pincodeResponse = await fetch(
-              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-            );
-            const pincodeData = await pincodeResponse.json();
-            
-            // Try to extract pincode from the response
-            const postalCode = pincodeData.postcode || pincodeData.postalCode;
-            
+            const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
+            const d = await r.json();
+            const postalCode = d.postcode || d.postalCode;
             if (postalCode && /^\d{6}$/.test(postalCode)) {
-              // Got a valid Indian pincode, now get the exact city name
-              const cityResponse = await fetch(`https://api.postalpincode.in/pincode/${postalCode}`);
-              const cityData = await cityResponse.json();
-              
-              if (cityData[0]?.Status === 'Success' && cityData[0]?.PostOffice?.length > 0) {
-                const postOffice = cityData[0].PostOffice[0];
-                // Use PostOffice Name as the city (specific area/locality)
-                const cityName = postOffice.Name;
-                const displayLocation = `${cityName}`;
-                
-                setSelectedLocation(displayLocation);
+              const cr = await fetch(`https://api.postalpincode.in/pincode/${postalCode}`);
+              const cd = await cr.json();
+              if (cd[0]?.Status === 'Success' && cd[0]?.PostOffice?.length > 0) {
+                const cityName = cd[0].PostOffice[0].Name;
+                setSelectedLocation(cityName);
                 setLocationType('auto');
-                localStorage.setItem('userLocation', displayLocation);
+                localStorage.setItem('userLocation', cityName);
                 localStorage.setItem('locationType', 'auto');
                 localStorage.setItem('userPincode', postalCode);
                 localStorage.setItem('userCity', cityName);
-                localStorage.setItem('userCoords', JSON.stringify({ latitude, longitude }));
                 setIsLocationOpen(false);
                 setIsDetectingLocation(false);
                 window.location.reload();
                 return;
               }
             }
-          } catch (e) {
-            console.log('Pincode detection failed, falling back to city name');
-          }
-          
-          // Fallback: use reverse geocoding city name
-          try {
-            const response = await fetch(
-              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-            );
-            const data = await response.json();
-            
-            // For India, prefer these fields in order
-            const city = data.city || 
-                         data.locality || 
-                         data.district || 
-                         data.principalSubdivision || 
-                         'Unknown';
-            const state = data.principalSubdivision || '';
-            const displayLocation = state && state !== city ? `${city}, ${state}` : city;
-            
-            setSelectedLocation(displayLocation);
+            const city = d.city || d.locality || d.district || d.principalSubdivision || 'Unknown';
+            const state = d.principalSubdivision || '';
+            const display = state && state !== city ? `${city}, ${state}` : city;
+            setSelectedLocation(display);
             setLocationType('auto');
-            localStorage.setItem('userLocation', displayLocation);
+            localStorage.setItem('userLocation', display);
             localStorage.setItem('locationType', 'auto');
-            localStorage.setItem('userCoords', JSON.stringify({ latitude, longitude }));
             setIsLocationOpen(false);
             window.location.reload();
-          } catch (error) {
-            console.error('Error getting location name:', error);
-            alert('Unable to detect your location. Please enter pincode manually.');
-          }
+          } catch { alert('Unable to detect location. Enter pincode manually.'); }
         },
-        (error) => {
-          console.error('Geolocation error:', error);
-          alert('Unable to access your location. Please enter pincode manually.');
-        }
+        () => alert('Location access denied. Enter pincode manually.')
       );
-    } catch (error) {
-      console.error('Error detecting location:', error);
     } finally {
       setIsDetectingLocation(false);
     }
   };
 
-  const handlePincodeSubmit = async () => {
-    if (pincode.length !== 6 || !/^\d{6}$/.test(pincode)) {
-      alert('Please enter a valid 6-digit pincode');
-      return;
-    }
-
-    // Get location from pincode using India Post API
+  const handlePincodeSubmit = async (closeMobile = false) => {
+    if (pincode.length !== 6 || !/^\d{6}$/.test(pincode)) { alert('Enter a valid 6-digit pincode'); return; }
     try {
-      const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
-      const data = await response.json();
-      
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+      const data = await res.json();
       if (data[0]?.Status === 'Success' && data[0]?.PostOffice?.length > 0) {
-        const postOffice = data[0].PostOffice[0];
-        
-        // Use only the PostOffice Name as city (specific locality/area name)
-        const cityName = postOffice.Name || '';
-        
-        // Format: "CityName" - just the city, no district or state
-        let locationString;
-        if (cityName) {
-          locationString = `${cityName}`;
-        } else {
-          locationString = `Pincode: ${pincode}`;
-        }
-        
-        setSelectedLocation(locationString);
+        const cityName = data[0].PostOffice[0].Name || '';
+        const loc = cityName || `Pincode: ${pincode}`;
+        setSelectedLocation(loc);
         setLocationType('pincode');
-        localStorage.setItem('userLocation', locationString);
+        localStorage.setItem('userLocation', loc);
         localStorage.setItem('locationType', 'pincode');
         localStorage.setItem('userPincode', pincode);
         localStorage.setItem('userCity', cityName);
         setIsLocationOpen(false);
         setShowPincodeInput(false);
+        setMobilePincodeInput(false);
+        if (closeMobile) setIsMenuOpen(false);
         window.location.reload();
       } else {
         alert('Invalid pincode. Please try again.');
       }
-    } catch (error) {
-      console.error('Error validating pincode:', error);
-      // Fallback: just save the pincode with error indicator
-      const fallbackLocation = `Location (${pincode})`;
-      setSelectedLocation(fallbackLocation);
+    } catch {
+      const loc = `Location (${pincode})`;
+      setSelectedLocation(loc);
       setLocationType('pincode');
-      localStorage.setItem('userLocation', fallbackLocation);
+      localStorage.setItem('userLocation', loc);
       localStorage.setItem('locationType', 'pincode');
       localStorage.setItem('userPincode', pincode);
       setIsLocationOpen(false);
       setShowPincodeInput(false);
+      setMobilePincodeInput(false);
       window.location.reload();
     }
   };
 
-  const filteredServices = popularServices.filter(service =>
-    service.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredServices = popularServices.filter(s =>
+    s.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const navLinks = [
-    { href: '/', label: 'Home', icon: Home },
-    { href: '/services', label: 'Services', icon: Briefcase },
-    { href: '/service-provider/register', label: 'Become a Provider', icon: Star },
+    { href: '/', label: 'Home' },
+    { href: '/services', label: 'Services' },
+    { href: '/service-provider/register', label: 'Become a Provider' },
   ];
 
   if (hideNavbar) return null;
 
   return (
-    <nav className="bg-white/95 backdrop-blur shadow-sm border-b border-gray-200 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-18 py-1">
-          {/* Logo */}
-          <div className="flex items-center flex-shrink-0">
-            <button onClick={() => router.push('/')} className="hover:opacity-85 transition-opacity flex items-center">
-              <img src="/logo/MFC_logo-bg.png" alt="Maids For Care" className="h-14 w-auto" />
+    <>
+      {/* ══════════════════════════════════════════════
+          Desktop & Tablet Navbar
+      ══════════════════════════════════════════════ */}
+      <nav className={`hidden md:block bg-white sticky top-0 z-50 transition-shadow duration-200 ${scrolled ? 'shadow-md border-b border-gray-100' : 'shadow-sm border-b border-gray-200'}`}>
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="flex items-center h-[68px] gap-6">
+
+            {/* ── Logo ── */}
+            <button onClick={() => router.push('/')} className="hover:opacity-80 transition-opacity flex-shrink-0 mr-2">
+              <img src="/logo/MFC_logo-bg.png" alt="Maids For Care" className="h-11 w-auto" />
             </button>
-          </div>
 
-          {/* Search Bar and Location Selector - Desktop */}
-          <div className="hidden lg:flex items-center flex-1 max-w-2xl mx-8">
-            {/* Location Selector */}
-            <div className="relative">
-              <button
-                onClick={() => setIsLocationOpen(!isLocationOpen)}
-                className="flex items-center space-x-2 px-4 py-2 border-r border-gray-200 text-gray-900 hover:bg-gray-100 transition-colors"
-              >
-                <MapPin className={`w-4 h-4 ${locationType ? 'text-gray-700' : 'text-gray-400'}`} />
-                <span className="text-sm font-medium">{selectedLocation}</span>
-                <ChevronDown className="w-4 h-4" />
-              </button>
-
-              {/* Location Dropdown */}
-              {isLocationOpen && (
-                <div className="absolute top-full left-0 mt-1 w-72 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
-                  <div className="p-3">
-                    <div className="text-xs font-medium mb-3 px-1 text-gray-500">
-                      Select Location
-                    </div>
-                    
-                    {/* Auto Detect Option */}
-                    <button
-                      onClick={detectLocation}
-                      disabled={isDetectingLocation}
-                      className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm transition-colors mb-2 text-gray-900 ${locationType === 'auto' ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
-                    >
-                      <MapPin className="w-4 h-4 mr-3 text-gray-700" />
-                      <div className="text-left">
-                        <div className="font-medium">Auto Detect Location</div>
-                        <div className="text-xs text-gray-400">
-                          {isDetectingLocation ? 'Detecting...' : 'Use my current location'}
-                        </div>
-                      </div>
-                    </button>
-
-                    {/* Enter Pincode Option */}
-                    {!showPincodeInput ? (
-                      <button
-                        onClick={() => setShowPincodeInput(true)}
-                        className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm transition-colors text-gray-900 ${locationType === 'pincode' ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
-                      >
-                        <Search className="w-4 h-4 mr-3 text-gray-700" />
-                        <div className="text-left">
-                          <div className="font-medium">Enter Pincode Manually</div>
-                          <div className="text-xs text-gray-400">
-                            {pincode ? `Current: ${pincode}` : 'Type your 6-digit pincode'}
-                          </div>
-                        </div>
-                      </button>
-                    ) : (
-                      <div className="px-3 py-2">
-                        <div className="flex space-x-2">
-                          <input
-                            type="text"
-                            placeholder="Enter 6-digit pincode"
-                            value={pincode}
-                            onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 text-gray-900"
-                            autoFocus
-                          />
-                          <Button
-                            onClick={handlePincodeSubmit}
-                            disabled={pincode.length !== 6}
-                            className="px-3 py-2 bg-black text-white hover:bg-gray-800 rounded-lg disabled:opacity-50"
-                          >
-                            Set
-                          </Button>
-                        </div>
-                        <button
-                          onClick={() => setShowPincodeInput(false)}
-                          className="text-xs mt-2 hover:underline text-gray-400"
-                        >
-                          Cancel
-                        </button>
-                      </div>
+            {/* ── Nav links ── */}
+            <div className="hidden lg:flex items-center gap-0.5">
+              {navLinks.map(({ href, label }) => {
+                const active = pathname === href;
+                return (
+                  <button
+                    key={href}
+                    onClick={() => router.push(href)}
+                    className={`relative px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      active
+                        ? 'text-gray-900'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    {label}
+                    {active && (
+                      <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-gray-900 rounded-full" />
                     )}
-
-                    {/* Current Location Display */}
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <div className="text-xs px-1 text-gray-400">Current Location</div>
-                      <div className="text-sm font-medium px-1 mt-1 text-gray-900">
-                        {selectedLocation}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Search Bar */}
-            <div className="relative flex-1">
-              <div className="relative border border-gray-200 rounded-xl">
+            {/* ── Unified Search Pill ── */}
+            <div className="flex-1 max-w-xl mx-auto relative" ref={searchRef}>
+              <div className={`flex items-center h-10 bg-white border rounded-xl transition-all duration-150 ${
+                isSearchFocused
+                  ? 'border-gray-400 shadow-md ring-2 ring-gray-100'
+                  : 'border-gray-300 shadow-sm hover:border-gray-400'
+              }`}>
+                {/* Location button */}
+                <button
+                  onClick={() => { setIsLocationOpen(!isLocationOpen); setIsSearchFocused(false); }}
+                  className="flex items-center gap-1.5 pl-3 pr-3 h-full border-r border-gray-200 text-gray-600 hover:text-gray-900 transition-colors flex-shrink-0 group"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 flex-shrink-0" />
+                  <span className="text-sm font-medium max-w-[100px] truncate">{selectedLocation}</span>
+                  <ChevronDown className={`w-3 h-3 text-gray-400 flex-shrink-0 transition-transform ${isLocationOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Search input */}
                 <input
                   type="text"
-                  placeholder="Search for services..."
+                  placeholder="Search for services…"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => setIsSearchFocused(true)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleSearch(searchQuery);
-                    }
-                  }}
-                  className="w-full px-4 py-2 pr-10 border-0 focus:outline-none text-sm rounded-xl text-gray-900 placeholder-gray-400"
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onFocus={() => { setIsSearchFocused(true); setIsLocationOpen(false); }}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSearch(searchQuery); }}
+                  className="flex-1 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none min-w-0"
                 />
+
+                {/* Search button */}
                 <button
                   onClick={() => handleSearch(searchQuery)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded transition-colors text-gray-400 hover:text-gray-700"
+                  className="flex items-center justify-center w-9 h-8 mr-1 rounded-lg bg-gray-900 text-white hover:bg-gray-700 transition-colors flex-shrink-0"
                 >
-                  <Search className="w-4 h-4" />
+                  <Search className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              {/* Search Suggestions */}
-              {isSearchFocused && searchQuery && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+              {/* Location dropdown */}
+              {isLocationOpen && (
+                <div className="absolute top-[calc(100%+6px)] left-0 w-72 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-gray-50 bg-gray-50">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Choose Location</p>
+                  </div>
                   <div className="p-2">
-                    {filteredServices.length > 0 ? (
-                      <>
-                        <div className="text-xs font-medium mb-2 px-2 text-gray-500">
-                          Popular Services
+                    <button
+                      onClick={detectLocation}
+                      disabled={isDetectingLocation}
+                      className={`flex items-center w-full gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${locationType === 'auto' ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                        <Navigation className="w-3.5 h-3.5 text-blue-500" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-gray-900">Detect automatically</p>
+                        <p className="text-xs text-gray-400">{isDetectingLocation ? 'Detecting…' : 'Use your current location'}</p>
+                      </div>
+                      {locationType === 'auto' && <span className="ml-auto text-xs text-green-600 font-semibold">Active</span>}
+                    </button>
+
+                    {!showPincodeInput ? (
+                      <button
+                        onClick={() => setShowPincodeInput(true)}
+                        className={`flex items-center w-full gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${locationType === 'pincode' ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
+                      >
+                        <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
+                          <MapPin className="w-3.5 h-3.5 text-purple-500" />
                         </div>
-                        {filteredServices.slice(0, 6).map((service) => (
-                          <button
-                            key={service}
-                            onClick={() => handleSearch(service)}
-                            className="flex items-center w-full px-2 py-2 text-left text-sm rounded-lg transition-colors text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-                          >
-                            <Search className="w-3 h-3 mr-2" />
-                            {service}
-                          </button>
-                        ))}
-                      </>
+                        <div className="text-left">
+                          <p className="font-medium text-gray-900">Enter pincode</p>
+                          <p className="text-xs text-gray-400">{pincode ? `Current: ${pincode}` : '6-digit postal code'}</p>
+                        </div>
+                        {locationType === 'pincode' && <span className="ml-auto text-xs text-green-600 font-semibold">Active</span>}
+                      </button>
                     ) : (
-                      <div className="px-2 py-4 text-center text-sm text-gray-400">
-                        No services found
+                      <div className="px-2 py-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="e.g. 400001"
+                            value={pincode}
+                            onChange={e => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 text-gray-900"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => handlePincodeSubmit()}
+                            disabled={pincode.length !== 6}
+                            className="px-3 py-2 bg-gray-900 text-white rounded-lg text-sm font-semibold disabled:opacity-40 hover:bg-gray-700 transition-colors"
+                          >
+                            Set
+                          </button>
+                        </div>
+                        <button onClick={() => setShowPincodeInput(false)} className="text-xs mt-2 text-gray-400 hover:text-gray-600">← Back</button>
                       </div>
                     )}
+                  </div>
+                  <div className="px-4 py-2.5 border-t border-gray-50 bg-gray-50 flex items-center gap-1.5">
+                    <MapPin className="w-3 h-3 text-gray-400" />
+                    <p className="text-xs text-gray-500 truncate">{selectedLocation}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Search suggestions */}
+              {isSearchFocused && searchQuery && filteredServices.length > 0 && (
+                <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                  <div className="px-4 py-2 border-b border-gray-50 bg-gray-50">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Suggestions</p>
+                  </div>
+                  <div className="p-2">
+                    {filteredServices.slice(0, 6).map(s => (
+                      <button
+                        key={s}
+                        onClick={() => handleSearch(s)}
+                        className="flex items-center w-full gap-2.5 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Search className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
+                        {s}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Search Bar for Medium Screens */}
-          <div className="hidden md:flex lg:hidden items-center flex-1 max-w-md mx-4">
-            <div className="relative w-full">
-              <input
-                type="text"
-                placeholder="Search services..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSearch(searchQuery);
-                  }
-                }}
-                className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 text-gray-900 placeholder-gray-400"
-              />
-              <button
-                onClick={() => handleSearch(searchQuery)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded transition-colors text-gray-400 hover:text-gray-700"
-              >
-                <Search className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+            {/* ── Right side ── */}
+            <div className="flex items-center gap-1 flex-shrink-0">
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-6">
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              const isActive = pathname === link.href;
-              return (
+              {/* Refer & Earn — only when logged in */}
+              {session && (
                 <button
-                  key={link.href}
-                  onClick={() => router.push(link.href)}
-                  className={`flex items-center space-x-1 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'text-gray-900 bg-gray-100'
-                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                  onClick={() => router.push('/referrals')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    pathname === '/referrals'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'text-purple-600 hover:bg-purple-50 hover:text-purple-700'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{link.label}</span>
+                  <Gift className="w-4 h-4" />
+                  <span className="hidden lg:inline">Refer &amp; Earn</span>
                 </button>
-              );
-            })}
-          </div>
+              )}
 
-          {/* User Menu */}
-          <div className="flex items-center space-x-4">
-            {status === 'loading' ? (
-              <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-            ) : session ? (
-              <>
-                {/* Notifications */}
-                <button
-                  onClick={() => router.push('/profile?tab=notifications')}
-                  className="relative p-2 rounded-xl transition-colors text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-                >
-                  <Bell className="w-5 h-5" />
-                  {notifications > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="absolute -top-1 -right-1 w-5 h-5 text-xs flex items-center justify-center p-0"
-                    >
-                      {notifications > 9 ? '9+' : notifications}
-                    </Badge>
-                  )}
-                </button>
-
-                {/* Profile Dropdown */}
-                <div className="relative">
+              {status === 'loading' ? (
+                <div className="w-8 h-8 bg-gray-100 rounded-full animate-pulse ml-1" />
+              ) : session ? (
+                <>
+                  {/* Bell */}
                   <button
-                    onClick={() => setIsProfileOpen(!isProfileOpen)}
-                    className="flex items-center space-x-2 p-2 rounded-xl transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    onClick={() => router.push('/profile?tab=notifications')}
+                    className="relative p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                   >
-                    <UserAvatar src={session.user.image} name={session.user.name} size="sm" />
-                    <span className="hidden sm:block text-sm font-medium">
-                      {session.user.name?.split(' ')[0]}
-                    </span>
-                    <ChevronDown className="w-4 h-4" />
+                    <Bell className="w-[18px] h-[18px]" />
+                    {notifications > 0 && (
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
+                    )}
                   </button>
 
-                  {/* Dropdown Menu */}
-                  {isProfileOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-lg border border-gray-200 z-50">
-                      <div className="py-1">
-                        <div className="px-4 py-2 border-b border-gray-200">
-                          <p className="text-sm font-medium text-gray-900">
-                            {session.user.name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {session.user.email}
-                          </p>
+                  {/* Avatar + dropdown */}
+                  <div className="relative ml-1">
+                    <button
+                      onClick={() => setIsProfileOpen(!isProfileOpen)}
+                      className={`flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-xl border transition-all ${
+                        isProfileOpen
+                          ? 'border-gray-300 bg-gray-50 shadow-sm'
+                          : 'border-transparent hover:border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <UserAvatar src={session.user.image} name={session.user.name} size="sm" />
+                      <span className="text-sm font-medium text-gray-900 max-w-[80px] truncate">
+                        {session.user.name?.split(' ')[0]}
+                      </span>
+                      <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {isProfileOpen && (
+                      <div className="absolute right-0 top-[calc(100%+6px)] w-56 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                        {/* User info */}
+                        <div className="px-4 py-3.5">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{session.user.name}</p>
+                          <p className="text-xs text-gray-400 truncate mt-0.5">{session.user.email}</p>
                         </div>
-                        
-                        <button
-                          onClick={() => {
-                            router.push('/dashboard');
-                            setIsProfileOpen(false);
-                          }}
-                          className="flex items-center w-full px-4 py-2 text-sm transition-colors text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-                        >
-                          <Calendar className="w-4 h-4 mr-3" />
-                          Dashboard
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            router.push('/profile');
-                            setIsProfileOpen(false);
-                          }}
-                          className="flex items-center w-full px-4 py-2 text-sm transition-colors text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-                        >
-                          <Settings className="w-4 h-4 mr-3" />
-                          Profile Settings
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            router.push('/service-provider');
-                            setIsProfileOpen(false);
-                          }}
-                          className="flex items-center w-full px-4 py-2 text-sm transition-colors text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-                        >
-                          <Briefcase className="w-4 h-4 mr-3" />
-                          Provider Dashboard
-                        </button>
-                        
-                        <div className="border-t border-gray-200">
+                        <div className="h-px bg-gray-100 mx-3" />
+                        {/* Menu items */}
+                        <div className="p-1.5">
+                          {[
+                            { href: '/dashboard', label: 'Dashboard', icon: Calendar },
+                            { href: '/referrals', label: 'Refer & Earn', icon: Gift, purple: true },
+                            { href: '/profile', label: 'Profile Settings', icon: Settings },
+                            { href: '/service-provider', label: 'Provider Dashboard', icon: Briefcase },
+                          ].map(({ href, label, icon: Icon, purple }) => (
+                            <button
+                              key={href}
+                              onClick={() => navigate(href)}
+                              className={`flex items-center w-full gap-2.5 px-3 py-2 rounded-xl text-sm transition-colors ${
+                                purple
+                                  ? 'text-purple-700 hover:bg-purple-50'
+                                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                              }`}
+                            >
+                              <Icon className="w-4 h-4 flex-shrink-0" />
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="h-px bg-gray-100 mx-3" />
+                        <div className="p-1.5">
                           <button
                             onClick={handleSignOut}
-                            className="flex items-center w-full px-4 py-2 text-sm transition-colors text-rose-600 hover:bg-rose-50"
+                            className="flex items-center w-full gap-2.5 px-3 py-2 rounded-xl text-sm text-rose-600 hover:bg-rose-50 transition-colors"
                           >
-                            <LogOut className="w-4 h-4 mr-3" />
+                            <LogOut className="w-4 h-4 flex-shrink-0" />
                             Sign Out
                           </button>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center space-x-3">
-                <Button
-                  variant="ghost"
-                  onClick={() => router.push('/auth/login')}
-                  className="text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  Sign In
-                </Button>
-                <Button
-                  onClick={() => router.push('/auth/register')}
-                  className="bg-black text-white hover:bg-gray-800 rounded-lg px-4 py-2 font-semibold transition-all"
-                >
-                  Get Started
-                </Button>
-              </div>
-            )}
-
-            {/* Mobile Menu Button */}
-            <div className="flex items-center space-x-1">
-              <button
-                onClick={() => setIsMenuOpen(true)}
-                className="md:hidden p-2 rounded-xl transition-colors text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-              >
-                <Search className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden p-2 rounded-xl transition-colors text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-              >
-                {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 bg-white">
-            <div className="px-2 pt-2 pb-3 space-y-1">
-              {/* Mobile Search */}
-              <div className="px-3 py-2">
-                <div className="flex items-center space-x-2 mb-3">
-                  <div className="relative flex-1">
-                    <input
-                      type="text"
-                      placeholder="Search for services..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSearch(searchQuery);
-                          setIsMenuOpen(false);
-                        }
-                      }}
-                      className="w-full px-3 py-2 pr-8 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 text-gray-900 placeholder-gray-400"
-                    />
-                    <button
-                      onClick={() => { handleSearch(searchQuery); setIsMenuOpen(false); }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700"
-                    >
-                      <Search className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Mobile Location Selector */}
-                <button
-                  onClick={() => setIsLocationOpen(!isLocationOpen)}
-                  className="flex items-center justify-between w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-900"
-                >
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="w-4 h-4 text-gray-700" />
-                    <span>{selectedLocation}</span>
-                  </div>
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-
-                {/* Mobile Location Options */}
-                {isLocationOpen && (
-                  <div className="mt-2 p-3 border border-gray-200 rounded-xl bg-gray-100">
-                    <button
-                      onClick={() => { detectLocation(); setIsMenuOpen(false); }}
-                      disabled={isDetectingLocation}
-                      className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm transition-colors mb-2 text-gray-900 ${locationType === 'auto' ? 'bg-white' : 'hover:bg-white'}`}
-                    >
-                      <MapPin className="w-4 h-4 mr-3 text-gray-700" />
-                      <div className="text-left">
-                        <div className="font-medium">Auto Detect Location</div>
-                        <div className="text-xs text-gray-400">{isDetectingLocation ? 'Detecting...' : 'Use my current location'}</div>
-                      </div>
-                    </button>
-
-                    {!showPincodeInput ? (
-                      <button
-                        onClick={() => setShowPincodeInput(true)}
-                        className={`flex items-center w-full px-3 py-2.5 rounded-lg text-sm transition-colors text-gray-900 ${locationType === 'pincode' ? 'bg-white' : 'hover:bg-white'}`}
-                      >
-                        <Search className="w-4 h-4 mr-3 text-gray-700" />
-                        <div className="text-left">
-                          <div className="font-medium">Enter Pincode Manually</div>
-                          <div className="text-xs text-gray-400">{pincode ? `Current: ${pincode}` : 'Type your 6-digit pincode'}</div>
-                        </div>
-                      </button>
-                    ) : (
-                      <div className="px-1 py-2">
-                        <div className="flex space-x-2">
-                          <input
-                            type="text"
-                            placeholder="Enter 6-digit pincode"
-                            value={pincode}
-                            onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 text-gray-900"
-                            autoFocus
-                          />
-                          <Button
-                            onClick={() => { handlePincodeSubmit(); setIsMenuOpen(false); }}
-                            disabled={pincode.length !== 6}
-                            className="px-3 py-2 bg-black text-white hover:bg-gray-800 rounded-lg disabled:opacity-50"
-                          >
-                            Set
-                          </Button>
-                        </div>
-                        <button onClick={() => setShowPincodeInput(false)} className="text-xs mt-2 hover:underline text-gray-400">
-                          Cancel
-                        </button>
-                      </div>
                     )}
-
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <div className="text-xs text-gray-400">Current Location</div>
-                      <div className="text-sm font-medium mt-1 text-gray-900">{selectedLocation}</div>
-                    </div>
                   </div>
-                )}
-              </div>
-
-              {/* Mobile Navigation Links */}
-              {navLinks.map((link) => {
-                const Icon = link.icon;
-                const isActive = pathname === link.href;
-                return (
+                </>
+              ) : (
+                <div className="flex items-center gap-2 ml-1">
                   <button
-                    key={link.href}
-                    onClick={() => { router.push(link.href); setIsMenuOpen(false); }}
-                    className={`flex items-center w-full space-x-3 px-3 py-2 rounded-xl text-base font-medium transition-colors ${
-                      isActive ? 'text-gray-900 bg-gray-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
+                    onClick={() => router.push('/auth/login')}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
                   >
-                    <Icon className="w-5 h-5" />
-                    <span>{link.label}</span>
-                  </button>
-                );
-              })}
-
-              {session && (
-                <div className="border-t border-gray-200 pt-3 mt-3 space-y-1">
-                  <button
-                    onClick={() => { router.push('/dashboard'); setIsMenuOpen(false); }}
-                    className="flex items-center w-full space-x-3 px-3 py-2 rounded-xl text-base font-medium transition-colors text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-                  >
-                    <Calendar className="w-5 h-5" />
-                    <span>Dashboard</span>
+                    Sign In
                   </button>
                   <button
-                    onClick={() => { router.push('/profile'); setIsMenuOpen(false); }}
-                    className="flex items-center w-full space-x-3 px-3 py-2 rounded-xl text-base font-medium transition-colors text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                    onClick={() => router.push('/auth/register')}
+                    className="px-4 py-2 text-sm font-semibold bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors"
                   >
-                    <Settings className="w-5 h-5" />
-                    <span>Profile</span>
+                    Get Started
                   </button>
                 </div>
               )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Click outside to close dropdowns */}
-      {(isProfileOpen || isMenuOpen || isLocationOpen || isSearchFocused) && (
+        {/* Click-outside backdrop */}
+        {(isProfileOpen || isLocationOpen || isSearchFocused) && (
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => {
+              setIsProfileOpen(false);
+              setIsLocationOpen(false);
+              setIsSearchFocused(false);
+              setShowPincodeInput(false);
+            }}
+          />
+        )}
+      </nav>
+
+      {/* ══════════════════════════════════════════════
+          Mobile top bar
+      ══════════════════════════════════════════════ */}
+      <nav className={`md:hidden bg-white sticky top-0 z-50 border-b transition-shadow duration-200 ${scrolled ? 'border-gray-200 shadow-md' : 'border-gray-100 shadow-sm'}`}>
+        <div className="flex items-center justify-between h-14 px-4">
+          <button onClick={() => router.push('/')} className="hover:opacity-80 transition-opacity">
+            <img src="/logo/MFC_logo-bg.png" alt="Maids For Care" className="h-10 w-auto" />
+          </button>
+          <div className="flex items-center gap-1">
+            {session && (
+              <button
+                onClick={() => router.push('/profile?tab=notifications')}
+                className="relative p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors"
+              >
+                <Bell className="w-5 h-5" />
+                {notifications > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
+                )}
+              </button>
+            )}
+            <button
+              onClick={() => setIsMenuOpen(true)}
+              className="p-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* ══════════════════════════════════════════════
+          Mobile Full-Screen Side Panel
+      ══════════════════════════════════════════════ */}
+      <div className={`fixed inset-0 z-[60] md:hidden transition-all duration-300 ${isMenuOpen ? 'visible' : 'invisible pointer-events-none'}`}>
         <div
-          className="fixed inset-0 z-40"
-          onClick={() => {
-            setIsProfileOpen(false);
-            setIsMenuOpen(false);
-            setIsLocationOpen(false);
-            setIsSearchFocused(false);
-            setShowPincodeInput(false);
-          }}
+          className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${isMenuOpen ? 'opacity-100' : 'opacity-0'}`}
+          onClick={() => setIsMenuOpen(false)}
         />
-      )}
-    </nav>
+
+        <div className={`absolute right-0 top-0 h-full w-full bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <img src="/logo/MFC_logo-bg.png" alt="Maids For Care" className="h-10 w-auto" />
+            <button
+              onClick={() => setIsMenuOpen(false)}
+              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* User strip */}
+          {session && (
+            <div className="flex items-center gap-3 px-5 py-4 bg-gray-50 border-b border-gray-100">
+              <UserAvatar src={session.user.image} name={session.user.name} size="md" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-gray-900 truncate">{session.user.name}</p>
+                <p className="text-xs text-gray-400 truncate">{session.user.email}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Search */}
+          <div className="px-4 pt-4 pb-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search services…"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSearch(searchQuery); }}
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 text-gray-900 placeholder-gray-400 bg-gray-50"
+              />
+            </div>
+            {searchQuery && filteredServices.length > 0 && (
+              <div className="mt-1 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                {filteredServices.slice(0, 4).map(s => (
+                  <button key={s} onClick={() => handleSearch(s)}
+                    className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
+                    <Search className="w-3 h-3 mr-2 text-gray-300" />{s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Location */}
+          <div className="px-4 pb-3">
+            <button
+              onClick={() => setIsLocationOpen(!isLocationOpen)}
+              className="flex items-center justify-between w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 bg-gray-50 hover:bg-gray-100 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-gray-500" />
+                <span className="truncate">{selectedLocation}</span>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isLocationOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isLocationOpen && (
+              <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-1">
+                <button onClick={detectLocation} disabled={isDetectingLocation}
+                  className="flex items-center w-full px-3 py-2.5 rounded-lg text-sm text-gray-900 hover:bg-white transition-colors">
+                  <Navigation className="w-4 h-4 mr-3 text-gray-500" />
+                  <div className="text-left">
+                    <p className="font-medium">Auto Detect</p>
+                    <p className="text-xs text-gray-400">{isDetectingLocation ? 'Detecting…' : 'Use current location'}</p>
+                  </div>
+                </button>
+                {!mobilePincodeInput ? (
+                  <button onClick={() => setMobilePincodeInput(true)}
+                    className="flex items-center w-full px-3 py-2.5 rounded-lg text-sm text-gray-900 hover:bg-white transition-colors">
+                    <MapPin className="w-4 h-4 mr-3 text-gray-500" />
+                    <div className="text-left">
+                      <p className="font-medium">Enter Pincode</p>
+                      <p className="text-xs text-gray-400">{pincode ? `Current: ${pincode}` : '6-digit pincode'}</p>
+                    </div>
+                  </button>
+                ) : (
+                  <div className="px-1 pt-1">
+                    <div className="flex gap-2">
+                      <input type="text" placeholder="6-digit pincode" value={pincode}
+                        onChange={e => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 text-gray-900 bg-white"
+                        autoFocus />
+                      <button onClick={() => handlePincodeSubmit(true)} disabled={pincode.length !== 6}
+                        className="px-3 py-2 bg-gray-900 text-white rounded-lg text-sm font-semibold disabled:opacity-40">
+                        Set
+                      </button>
+                    </div>
+                    <button onClick={() => setMobilePincodeInput(false)} className="text-xs mt-1.5 text-gray-400 hover:underline">Cancel</button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Nav links */}
+          <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-1">
+            <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest px-2 pt-1 pb-1">Navigation</p>
+            {[
+              { href: '/', label: 'Home', icon: Home },
+              { href: '/services', label: 'Services', icon: Briefcase },
+              { href: '/service-provider/register', label: 'Become a Provider', icon: Star },
+            ].map(({ href, label, icon: Icon }) => (
+              <button key={href} onClick={() => navigate(href)}
+                className={`flex items-center w-full gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
+                  pathname === href ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'
+                }`}>
+                <Icon className="w-5 h-5 shrink-0" />
+                <span>{label}</span>
+                {pathname === href && <ChevronRight className="w-4 h-4 ml-auto opacity-60" />}
+              </button>
+            ))}
+
+            {session && (
+              <>
+                <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest px-2 pt-4 pb-1">My Account</p>
+                {[
+                  { href: '/dashboard', label: 'Dashboard', icon: Calendar },
+                  { href: '/profile', label: 'Profile Settings', icon: Settings },
+                  { href: '/service-provider', label: 'Provider Dashboard', icon: Briefcase },
+                ].map(({ href, label, icon: Icon }) => (
+                  <button key={href} onClick={() => navigate(href)}
+                    className={`flex items-center w-full gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
+                      pathname === href ? 'bg-gray-100 text-gray-900' : 'text-gray-700 hover:bg-gray-100'
+                    }`}>
+                    <Icon className="w-5 h-5 shrink-0" /><span>{label}</span>
+                  </button>
+                ))}
+                <button onClick={() => navigate('/referrals')}
+                  className={`flex items-center w-full gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all mt-1 ${
+                    pathname === '/referrals' ? 'bg-purple-100 text-purple-700' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+                  }`}>
+                  <Gift className="w-5 h-5 shrink-0" />
+                  <span>Refer &amp; Earn</span>
+                  <span className="ml-auto text-[10px] font-bold bg-purple-200 text-purple-700 px-2 py-0.5 rounded-full">Earn</span>
+                </button>
+              </>
+            )}
+
+            {!session && status !== 'loading' && (
+              <>
+                <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest px-2 pt-4 pb-1">Account</p>
+                <button onClick={() => navigate('/auth/login')}
+                  className="flex items-center w-full gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                  <Star className="w-5 h-5 shrink-0" /><span>Sign In</span>
+                </button>
+                <button onClick={() => navigate('/auth/register')}
+                  className="flex items-center justify-center w-full gap-2 px-3 py-3 rounded-xl text-sm font-bold bg-gray-900 text-white hover:bg-gray-700 transition-colors mt-1">
+                  Get Started
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Sign out */}
+          {session && (
+            <div className="border-t border-gray-100 px-4 py-4">
+              <button onClick={handleSignOut}
+                className="flex items-center w-full gap-3 px-3 py-3 rounded-xl text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors">
+                <LogOut className="w-5 h-5 shrink-0" /><span>Sign Out</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Booking from '@/models/Booking';
-import { verifyAdminToken } from '@/lib/adminAuth';
+import { getAdminFromRequest, requirePermission } from '@/lib/adminAuth';
 
 export async function GET(
   request: NextRequest,
@@ -12,20 +12,9 @@ export async function GET(
     
     const { id } = await params;
     
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const adminData = verifyAdminToken(token);
-    if (!adminData || !adminData.isHardcodedAdmin) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      );
+    const adminData = getAdminFromRequest(request.headers.get('authorization'));
+    if (!adminData || !requirePermission(adminData, 'view_bookings')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const booking = await Booking.findById(id)

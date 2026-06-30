@@ -4,6 +4,8 @@ import dbConnect from '@/lib/mongodb';
 import Booking from '@/models/Booking';
 import ServiceProvider from '@/models/ServiceProvider';
 import User from '@/models/User';
+import Referral from '@/models/Referral';
+import ReferralSettings from '@/models/ReferralSettings';
 import { sendPaymentConfirmedEmail } from '@/lib/emailService';
 
 export async function POST(request: NextRequest) {
@@ -81,6 +83,38 @@ export async function POST(request: NextRequest) {
       }
     } catch (emailErr) {
       console.error('[Email] payment.confirmed error:', emailErr);
+    }
+
+    // Create referral commission record (non-blocking)
+    try {
+      const b = booking as any;
+      if (b?.referredByCode) {
+        const alreadyExists = await Referral.findOne({ bookingId: bookingId });
+        if (!alreadyExists) {
+          const referrer = await User.findOne({ referralCode: b.referredByCode }, '_id');
+          const bookerUserId = b.user?._id || b.user;
+          // Prevent self-referral
+          if (referrer && String(referrer._id) !== String(bookerUserId)) {
+            const settings = await ReferralSettings.findOne({ key: 'default' });
+            const rate = settings?.isEnabled ? (settings?.commissionRate ?? 10) : 0;
+            if (rate > 0) {
+              const commission = Math.round((b.totalAmount * rate) / 100 * 100) / 100;
+              await Referral.create({
+                referrerId: referrer._id,
+                referredUserId: bookerUserId,
+                bookingId: bookingId,
+                referralCode: b.referredByCode,
+                bookingAmount: b.totalAmount,
+                commissionRate: rate,
+                commissionAmount: commission,
+                status: 'pending',
+              });
+            }
+          }
+        }
+      }
+    } catch (refErr) {
+      console.error('[Referral] commission creation error:', refErr);
     }
 
     return NextResponse.json({

@@ -5,16 +5,13 @@ import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Shield } from 'lucide-react';
 
 export default function AdminLoginPage() {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    secretKey: '',
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showSecretKey, setShowSecretKey] = useState(false);
   const router = useRouter();
+
+  const VALID_ROLES = ['super_admin', 'admin', 'support_agent'];
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -22,12 +19,10 @@ export default function AdminLoginPage() {
     if (token && adminUser) {
       try {
         const parsed = JSON.parse(adminUser);
-        if (parsed.role === 'admin') {
+        if (VALID_ROLES.includes(parsed.role)) {
           router.replace('/admin');
         }
-      } catch {
-        // corrupted data — let them log in again
-      }
+      } catch {}
     }
   }, [router]);
 
@@ -39,9 +34,7 @@ export default function AdminLoginPage() {
     try {
       const response = await fetch('/api/auth/admin/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
@@ -50,13 +43,11 @@ export default function AdminLoginPage() {
       if (response.ok) {
         localStorage.setItem('adminToken', data.token);
         localStorage.setItem('adminUser', JSON.stringify(data.user));
-        
-        // Use window.location for reliable redirect
         window.location.href = '/admin';
       } else {
         setError(data.error || 'Admin login failed');
       }
-    } catch (error) {
+    } catch {
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);
@@ -64,65 +55,58 @@ export default function AdminLoginPage() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <div className="flex justify-center">
-            <Shield className="w-12 h-12 text-red-600" />
-          </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Admin Access
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Restricted area - Authorized personnel only
-          </p>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              {error}
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-2xl shadow-lg ring-1 ring-gray-200 p-8">
+          <div className="flex flex-col items-center mb-8">
+            <div className="h-14 w-14 rounded-full bg-gray-900 flex items-center justify-center mb-4">
+              <Shield className="w-7 h-7 text-white" />
             </div>
-          )}
+            <h1 className="text-2xl font-bold text-gray-900">Admin Access</h1>
+            <p className="text-sm text-gray-500 mt-1">Restricted — authorised personnel only</p>
+          </div>
 
-          <div className="space-y-4">
-            {/* Email */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Admin Email
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email
               </label>
               <input
                 id="email"
                 name="email"
                 type="email"
                 required
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-red-500 focus:border-red-500"
-                placeholder="info@maidsforcare.com"
+                autoComplete="email"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                placeholder="admin@maidsforcare.com"
                 value={formData.email}
                 onChange={handleChange}
               />
             </div>
 
-            {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Admin Password
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
               </label>
-              <div className="mt-1 relative">
+              <div className="relative">
                 <input
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   required
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-red-500 focus:border-red-500"
-                  placeholder="Enter admin password"
+                  autoComplete="current-password"
+                  className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                  placeholder="Enter password"
                   value={formData.password}
                   onChange={handleChange}
                 />
@@ -131,78 +115,29 @@ export default function AdminLoginPage() {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
                 </button>
               </div>
             </div>
 
-            {/* Secret Key */}
-            <div>
-              <label htmlFor="secretKey" className="block text-sm font-medium text-gray-700">
-                Admin Secret Key
-              </label>
-              <div className="mt-1 relative">
-                <input
-                  id="secretKey"
-                  name="secretKey"
-                  type={showSecretKey ? 'text' : 'password'}
-                  required
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-red-500 focus:border-red-500"
-                  placeholder="Enter secret access key"
-                  value={formData.secretKey}
-                  onChange={handleChange}
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowSecretKey(!showSecretKey)}
-                >
-                  {showSecretKey ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div>
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+              className="w-full py-2.5 px-4 bg-gray-900 text-white text-sm font-semibold rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 disabled:opacity-50 transition-colors"
             >
-              {loading ? 'Authenticating...' : 'Access Admin Panel'}
+              {loading ? 'Authenticating…' : 'Sign in to Admin Panel'}
             </button>
-          </div>
+          </form>
 
-          <div className="text-center">
+          <div className="mt-6 text-center">
             <button
               type="button"
               onClick={() => router.push('/')}
-              className="text-sm text-gray-600 hover:text-gray-900 underline"
+              className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
             >
               ← Back to Home
             </button>
           </div>
-        </form>
-
-        {/* Development Info */}
-        <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-          <h3 className="text-sm font-medium text-yellow-800 mb-2">Development Credentials:</h3>
-          <div className="text-xs text-yellow-700 space-y-1">
-            <p><strong>Email:</strong> info@maidsforcare.com</p>
-            <p><strong>Password:</strong> Admin@123456</p>
-            <p><strong>Secret Key:</strong> super-secret-admin-key-2024</p>
-          </div>
-          <p className="text-xs text-yellow-600 mt-2">
-            ⚠️ Remove this section in production
-          </p>
         </div>
       </div>
     </div>
